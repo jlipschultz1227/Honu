@@ -1,0 +1,668 @@
+---
+title: "Abundance Trends"
+output: html_document
+date: "2023-07-03"
+---
+
+##Libraries
+
+```{r setup, include=FALSE}
+library(readxl)
+library(here)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(data.table)
+library(chron)
+```
+
+##Data and Removing Duplicates
+
+```{r}
+dat <- read_xlsx(here::here("Data", "AbundanceData.xlsx"))
+removed_dat <-  read_xlsx(here::here("Data", "AbundanceData.xlsx"))
+
+#Removing duplicates of events
+removed_dat$Date <- as.Date(removed_dat$Date)
+duplicates <- duplicated(removed_dat$TimeBegin) & duplicated(removed_dat$Date)
+unique_dat <- removed_dat[!duplicates, ]
+
+setDT(unique_dat)
+unique_dat[, TimeBegin := as.ITime(sprintf("%s", TimeBegin), format = "%H%M")]
+unique_dat[, TimeEnd := as.ITime(sprintf("%s", TimeEnd), format = "%H%M")]
+```
+
+
+##Time dataframe 
+
+```{r}
+time_dat <- dat %>%
+  filter(!is.na(Time)) %>%
+  group_by(Time, Year) %>%
+  summarize(Sum_Turtles = sum(Num_Turtles)) %>%
+  summarize(Mean_Turtles = mean(Sum_Turtles))
+  
+
+time_dat$Time <- as.numeric(time_dat$Time)
+time_dat$Time <- sprintf("%02d:%02d", time_dat$Time %/% 100, time_dat$Time %% 100)
+time_dat$Time <- as.POSIXct(time_dat$Time, format = "%H:%M")
+
+```
+
+##Avg start and end times for each island
+
+Finding the average start and end time for surveys at each island
+
+```{r}
+#Finding the average survey times for Laysan
+Laysan_dat <- unique_dat %>%
+  filter(Site == "LAY")
+
+Laysan_avg_begin_time_numeric <- mean(as.numeric(Laysan_dat$TimeBegin), na.rm = TRUE)
+Laysan_avg_begin_time <- format(as.ITime(Laysan_avg_begin_time_numeric, format = "h:m:s"), format = "%H:%M")
+Laysan_avg_begin_time
+
+Laysan_avg_end_time_numeric <- mean(as.numeric(Laysan_dat$TimeEnd), na.rm = TRUE)
+Laysan_avg_end_time <- format(as.ITime(Laysan_avg_end_time_numeric, format = "h:m:s"), format = "%H:%M")
+Laysan_avg_end_time
+
+#Finding the average survey times for Lisianski
+Lisi_dat <- unique_dat %>%
+  filter(Site == "LIS")
+
+Lisi_avg_begin_time_numeric <- mean(as.numeric(Lisi_dat$TimeBegin), na.rm = TRUE)
+Lisi_avg_begin_time <- format(as.ITime(Lisi_avg_begin_time_numeric, format = "h:m:s"), format = "%H:%M")
+Lisi_avg_begin_time
+
+Lisi_avg_end_time_numeric <- mean(as.numeric(Lisi_dat$TimeEnd), na.rm = TRUE)
+Lisi_avg_end_time <- format(as.ITime(Lisi_avg_end_time_numeric, format = "h:m:s"), format = "%H:%M")
+Lisi_avg_end_time
+
+#Finding the average survey times for Midway
+Midway_dat <- unique_dat %>%
+  filter(Site == "MDY")
+
+Midway_avg_begin_time_numeric <- mean(as.numeric(Midway_dat$TimeBegin), na.rm = TRUE)
+Midway_avg_begin_time <- format(as.ITime(Midway_avg_begin_time_numeric, format = "h:m:s"), format = "%H:%M")
+Midway_avg_begin_time
+
+Midway_avg_end_time_numeric <- mean(as.numeric(Midway_dat$TimeEnd), na.rm = TRUE)
+Midway_avg_end_time <- format(as.ITime(Midway_avg_end_time_numeric, format = "h:m:s"), format = "%H:%M")
+Midway_avg_end_time
+
+#Finding the average survey times for Pearl & Hermes
+PH_dat <- unique_dat %>%
+  filter(Site == "PHR")
+
+PH_avg_begin_time_numeric <- mean(as.numeric(PH_dat$TimeBegin), na.rm = TRUE)
+PH_avg_begin_time <- format(as.ITime(PH_avg_begin_time_numeric, format = "h:m:s"), format = "%H:%M")
+PH_avg_begin_time
+
+PH_avg_end_time_numeric <- mean(as.numeric(PH_dat$TimeEnd), na.rm = TRUE)
+PH_avg_end_time <- format(as.ITime(PH_avg_end_time_numeric, format = "h:m:s"), format = "%H:%M")
+PH_avg_end_time
+
+#Finding the average survey times for Kure
+Kure_dat <- unique_dat %>%
+  filter(Site == "KUR")
+
+Kure_avg_begin_time_numeric <- mean(as.numeric(Kure_dat$TimeBegin), na.rm = TRUE)
+Kure_avg_begin_time <- format(as.ITime(Kure_avg_begin_time_numeric, format = "h:m:s"), format = "%H:%M")
+Kure_avg_begin_time
+
+Kure_avg_end_time_numeric <- mean(as.numeric(Kure_dat$TimeEnd), na.rm = TRUE)
+Kure_avg_end_time <- format(as.ITime(Kure_avg_end_time_numeric, format = "h:m:s"), format = "%H:%M")
+Kure_avg_end_time
+
+```
+##Graph for Time trends
+
+This graph is a plot of the average of turtles seen at each time of day. It is combining all Northwest Islands and all years. The colored bars represent the average start and end time for surveys done at each island across all years. Blue is Laysan, red is Laysan, green is Midway, orange is Pearl and Hermes and yellow is Kure. 
+
+```{r}
+
+time_trend <- ggplot() +
+  geom_line(data = time_dat, aes(x = Time, y = Mean_Turtles)) +
+  labs(x = "Time", y = "Number of Honu Seen", title = "Time of Honu Seen During Basking Surveys (1983-2022)", color = "Legend") +
+  scale_x_datetime(name = "Time", 
+                   breaks = seq(as.POSIXct("07:00", format = "%H:%M"), 
+                                as.POSIXct("20:00", format = "%H:%M"), 
+                                by = "1 hour"), 
+                   date_labels = "%H:%M", expand = c(0,0)) +
+  theme_minimal() +
+  annotate("rect", xmin = as.POSIXct("2023-07-17 12:59:44"), xmax = as.POSIXct("2023-07-17 15:38:08"), ymin = 0, ymax = 2,
+           alpha = .3, fill = "blue") +
+  annotate("rect", xmin = as.POSIXct("2023-07-17 13:07:00"), xmax = as.POSIXct("2023-07-17 14:59:51"), ymin = 2, ymax = 4,
+           alpha = .3, fill = "red") +
+  annotate("rect", xmin = as.POSIXct("2023-07-17 12:37:46"), xmax = as.POSIXct("2023-07-17 15:10:25"), ymin = 4, ymax = 6,
+           alpha = .3, fill = "green") +
+  annotate("rect", xmin = as.POSIXct("2023-07-17 13:16:45"), xmax = as.POSIXct("2023-07-17 14:08:51"), ymin = 6, ymax = 8,
+           alpha = .3, fill = "orange") +
+  annotate("rect", xmin = as.POSIXct("2023-07-17 13:47:45"), xmax = as.POSIXct("2023-07-17 15:09:01"), ymin = 8, ymax = 10,
+           alpha = .3, fill = "yellow") +
+  scale_fill_manual(name = "Island", values = c("Laysan" = "blue", "Lisianski" = "red", "Midway" = "green", "Pearl and Hermes" = "orange", "Kure" = "yellow"), labels = c("Laysan", "Lisianski", "Midway", "Pearl and Hermes", "Kure")) +
+  guides(fill = guide_legend(title = "Island")) +
+  theme(panel.border = element_rect(color = "black", fill = NA)) +
+  scale_y_continuous(limits = c(0, 10), expand = c(0,0), breaks = seq(0, 10, by = 2))
+
+time_trend 
+```
+
+##Time Dataframes for each island
+
+```{r}
+time_dat_site <- dat %>%
+  filter(!is.na(Time)) %>%
+  group_by(Time, Year, Site) %>%
+  summarize(Sum_Turtles = sum(Num_Turtles))
+
+time_dat_site <- time_dat_site %>%
+  group_by(Time, Site) %>%
+  summarize(Mean_Turtles = mean(Sum_Turtles))
+
+time_dat_site$Time <- sprintf("%04d", as.integer(time_dat_site$Time))
+time_dat_site$Time <- strptime(time_dat_site$Time, format = "%H%M")
+time_dat_site$Time <- as.POSIXct(time_dat_site$Time)
+
+Laysan_time_dat <- time_dat_site %>%
+  filter(Site == "LAY")
+
+Lisi_time_dat <- time_dat_site %>%
+  filter(Site == "LIS")
+
+Midway_time_dat <- time_dat_site %>%
+  filter(Site == "MDY")
+
+PH_time_dat <- time_dat_site %>%
+  filter(Site == "PHR")
+
+Kure_time_dat <- time_dat_site %>%
+  filter(Site == "KUR")
+```
+
+##Laysan time graph
+
+```{r}
+Laysan_time <- ggplot() +
+  geom_line(data = Laysan_time_dat, aes(x = Time, y = Mean_Turtles)) +
+  labs(x = "Time", y = "Number of Honu Seen", title = "Time of Honu Seen During Basking Surveys On Kamole (1983-2022, n = 34)", color = "Legend") +
+  scale_x_datetime(name = "Time", 
+                   breaks = seq(as.POSIXct("07:00", format = "%H:%M"), 
+                                as.POSIXct("21:00", format = "%H:%M"), 
+                                by = "1 hour"), limits = c(as.POSIXct("07:00", format = "%H:%M"), 
+                                as.POSIXct("21:00", format = "%H:%M")), 
+                   date_labels = "%H:%M") +
+  theme_minimal() +
+  annotate("rect", xmin = as.POSIXct("2023-07-18 12:59:44"), xmax = as.POSIXct("2023-07-18 15:38:08"), ymin = 1, ymax = 4,
+           alpha = .3, fill = "blue") +
+  theme(panel.border = element_rect(color = "black", fill = NA), plot.margin = margin(5.5, 10, 5.5, 5.5)) 
+
+Laysan_time
+```
+##Lisianski Time Graph
+
+```{r}
+Lisi_time <- ggplot() +
+  geom_line(data = Lisi_time_dat, aes(x = Time, y = Mean_Turtles)) +
+  labs(x = "Time", y = "Number of Honu Seen", title = "Time of Honu Seen During Basking Surveys On Kapou (1983-2022, n = 32)", color = "Legend") +
+  scale_x_datetime(name = "Time", 
+                   breaks = seq(as.POSIXct("07:00", format = "%H:%M"), 
+                                as.POSIXct("21:00", format = "%H:%M"), 
+                                by = "1 hour"), limits = c(as.POSIXct("07:00", format = "%H:%M"), 
+                                as.POSIXct("21:00", format = "%H:%M")), 
+                   date_labels = "%H:%M") +
+  theme_minimal()+ 
+  annotate("rect", xmin = as.POSIXct("2023-07-18 13:07:00"), xmax = as.POSIXct("2023-07-18 14:59:51"), ymin = 1, ymax = 6,
+           alpha = .3, fill = "red") +
+  theme(panel.border = element_rect(color = "black", fill = NA), plot.margin = margin(5.5, 10, 5.5, 5.5))
+
+Lisi_time
+```
+
+##Midway Time Graph
+
+```{r}
+Midway_time <- ggplot() +
+  geom_line(data = Midway_time_dat, aes(x = Time, y = Mean_Turtles)) +
+  labs(x = "Time", y = "Number of Honu Seen", title = "Time of Honu Seen During Basking Surveys On Midway (1992-2022, n = 23)", color = "Legend") +
+  scale_x_datetime(name = "Time", 
+                   breaks = seq(as.POSIXct("07:00", format = "%H:%M"), 
+                                as.POSIXct("21:00", format = "%H:%M"), 
+                                by = "1 hour"), limits = c(as.POSIXct("07:00", format = "%H:%M"), 
+                                as.POSIXct("21:00", format = "%H:%M")), 
+                   date_labels = "%H:%M") +
+  theme_minimal()+
+  annotate("rect", xmin = as.POSIXct("2023-07-18 12:37:46"), xmax = as.POSIXct("2023-07-18 15:10:25"), ymin = 1, ymax = 7,
+           alpha = .3, fill = "green") +
+  theme(panel.border = element_rect(color = "black", fill = NA), plot.margin = margin(5.5, 10, 5.5, 5.5))
+
+Midway_time
+```
+
+##Pearl and Hermes Time Graph
+
+```{r}
+PH_time <- ggplot() +
+  geom_line(data = PH_time_dat, aes(x = Time, y = Mean_Turtles)) +
+  labs(x = "Time", y = "Number of Honu Seen", title = "Time of Honu Seen During Basking Surveys On Manawai (1983-2022, n = 34)", color = "Legend") +
+  scale_x_datetime(name = "Time", 
+                   breaks = seq(as.POSIXct("07:00", format = "%H:%M"), 
+                                as.POSIXct("21:00", format = "%H:%M"), 
+                                by = "1 hour"), limits = c(as.POSIXct("07:00", format = "%H:%M"), 
+                                as.POSIXct("21:00", format = "%H:%M")), 
+                   date_labels = "%H:%M") +
+  theme_minimal()+
+  annotate("rect", xmin = as.POSIXct("2023-07-18 13:16:45"), xmax = as.POSIXct("2023-07-18 14:08:51"), ymin = 1, ymax = 16,
+           alpha = .3, fill = "orange") +
+  theme(panel.border = element_rect(color = "black", fill = NA), plot.margin = margin(5.5, 10, 5.5, 5.5))
+
+PH_time
+```
+
+##Kure Time graphs
+
+```{r}
+Kure_time <- ggplot() +
+  geom_line(data = Kure_time_dat, aes(x = Time, y = Mean_Turtles)) +
+  labs(x = "Time", y = "Number of Honu Seen", title = "Time of Honu Seen During Basking Surveys On Holaniku (1983-2022, n = 32)", color = "Legend") +
+  scale_x_datetime(name = "Time", 
+                   breaks = seq(as.POSIXct("07:00", format = "%H:%M"), 
+                                as.POSIXct("21:00", format = "%H:%M"), 
+                                by = "1 hour"), limits = c(as.POSIXct("07:00", format = "%H:%M"), 
+                                as.POSIXct("21:00", format = "%H:%M")), 
+                   date_labels = "%H:%M") +
+  theme_minimal()+
+  annotate("rect", xmin = as.POSIXct("2023-07-18 13:47:45"), xmax = as.POSIXct("2023-07-18 15:09:01"), ymin = 1, ymax = 3,
+           alpha = .3, fill = "yellow") +
+  theme(panel.border = element_rect(color = "black", fill = NA), plot.margin = margin(5.5, 10, 5.5, 5.5))
+
+Kure_time
+```
+
+##Month Data Means
+
+
+```{r}
+month_dat <- dat %>%
+  group_by(Date, Year) %>%
+  summarize(Sum_Turtles = sum(Num_Turtles))
+month_dat$MonthDay <- format(month_dat$Date, "%m-%d") %>%
+  na.omit()
+
+month_dat <- month_dat %>%
+  group_by(MonthDay) %>%
+  summarize(Mean_Turtles = mean(Sum_Turtles))
+month_dat$MonthDay <- as.Date(month_dat$MonthDay, format = "%m-%d")
+
+
+ first_days <- (format(month_dat$MonthDay, "%m-01"))
+```
+
+
+##Finding average start and end survey dates at each island
+
+```{r}
+avg_month <- dat %>%
+  group_by(Date, Year, Site) %>%
+  summarize(Sum_Turtles = sum(Num_Turtles))
+avg_month$MonthDay <- format(avg_month$Date, "%m-%d")
+
+#Laysan avg date
+Laysan_starts <- avg_month %>%
+  filter(Site == "LAY") %>%
+  group_by(Year) %>%
+  filter(Date == min(Date)) 
+Laysan_starts$MonthDay <- as.Date(Laysan_starts$MonthDay, format = "%m-%d")
+
+Laysan_ends <- avg_month %>%
+  filter(Site == "LAY") %>%
+  group_by(Year) %>%
+  filter(Date == max(Date))
+Laysan_ends$MonthDay <- as.Date(Laysan_ends$MonthDay, format = "%m-%d")
+  
+avg_start_L <- mean(Laysan_starts$MonthDay)
+avg_ends_L <- mean(Laysan_ends$MonthDay)
+
+avg_start_L
+avg_ends_L
+
+#Lisianski avg values
+Lisi_starts <- avg_month %>%
+  filter(Site == "LIS") %>%
+  group_by(Year) %>%
+  filter(Date == min(Date)) 
+Lisi_starts$MonthDay <- as.Date(Lisi_starts$MonthDay, format = "%m-%d")
+
+Lisi_ends <- avg_month %>%
+  filter(Site == "LIS") %>%
+  group_by(Year) %>%
+  filter(Date == max(Date))
+Lisi_ends$MonthDay <- as.Date(Lisi_ends$MonthDay, format = "%m-%d")
+  
+avg_start_Li <- mean(Lisi_starts$MonthDay)
+avg_ends_Li <- mean(Lisi_ends$MonthDay)
+
+avg_start_Li
+avg_ends_Li
+
+#Midway avg dates
+Midway_starts <- avg_month %>%
+  filter(Site == "MDY") %>%
+  group_by(Year) %>%
+  filter(Date == min(Date)) 
+Midway_starts$MonthDay <- as.Date(Midway_starts$MonthDay, format = "%m-%d")
+
+Midway_ends <- avg_month %>%
+  filter(Site == "MDY") %>%
+  group_by(Year) %>%
+  filter(Date == max(Date))
+Midway_ends$MonthDay <- as.Date(Midway_ends$MonthDay, format = "%m-%d")
+  
+avg_start_M <- mean(Midway_starts$MonthDay)
+avg_ends_M <- mean(Midway_ends$MonthDay)
+
+avg_start_M
+avg_ends_M
+
+#PH avg dates
+PH_starts <- avg_month %>%
+  filter(Site == "PHR") %>%
+  group_by(Year) %>%
+  filter(Date == min(Date)) 
+PH_starts$MonthDay <- as.Date(PH_starts$MonthDay, format = "%m-%d")
+
+PH_ends <- avg_month %>%
+  filter(Site == "PHR") %>%
+  group_by(Year) %>%
+  filter(Date == max(Date))
+PH_ends$MonthDay <- as.Date(PH_ends$MonthDay, format = "%m-%d")
+  
+avg_start_P <- mean(PH_starts$MonthDay)
+avg_ends_P <- mean(PH_ends$MonthDay)
+
+avg_start_P
+avg_ends_P
+
+#Kure avg dates
+Kure_starts <- avg_month %>%
+  filter(Site == "KUR") %>%
+  group_by(Year) %>%
+  filter(Date == min(Date)) 
+Kure_starts$MonthDay <- as.Date(Kure_starts$MonthDay, format = "%m-%d")
+
+Kure_ends <- avg_month %>%
+  filter(Site == "KUR") %>%
+  group_by(Year) %>%
+  filter(Date == max(Date))
+Kure_ends$MonthDay <- as.Date(Kure_ends$MonthDay, format = "%m-%d")
+  
+avg_start_K <- mean(Kure_starts$MonthDay)
+avg_ends_K <- mean(Kure_ends$MonthDay)
+
+avg_start_K
+avg_ends_K
+```
+
+##Month Trend totals graph
+
+This graph is showing the average of turtles seen in one day on every island and across every year. This is coming from all the complete censuses that we have from the Monk Seal Program and the MTBAP program from 1983 to 2022. The colored bars represent the average range of surveys done at each island. I found the average earliest and latest survey done each year at each island. Blue is Laysan, red is Laysan, green is Midway, orange is Pearl and Hermes and yellow is Kure. 
+
+```{r}
+month_trend <- ggplot(month_dat, aes(x = MonthDay, y = Mean_Turtles)) +
+  geom_line() +
+  scale_x_date(breaks = seq(as.Date("2023-01-01"), as.Date("2023-12-31"), by = "month"), date_labels = "%b", limits = c(as.Date("2023-01-01"), as.Date("2023-12-31")), expand = c(0.01,0))+
+  labs(x = "Month", y = "Number of Honu Seen", title = "Average Number of Honu Seen Each Day (1983-2022)") +
+  theme_minimal() +
+  annotate("rect", xmin = as.Date("2023-04-24"), xmax = as.Date("2023-07-29"), ymin = 0, ymax = 4,
+           alpha = .3, fill = "blue") +
+  annotate("rect", xmin = as.Date("2023-05-21"), xmax = as.Date("2023-07-28"), ymin = 4, ymax = 8,
+           alpha = .3, fill = "red") +
+  annotate("rect", xmin = as.Date("2023-04-09"), xmax = as.Date("2023-08-26"), ymin = 8, ymax = 12,
+           alpha = .3, fill = "green") +
+  annotate("rect", xmin = as.Date("2023-06-18"), xmax = as.Date("2023-07-29"), ymin = 12, ymax = 16,
+           alpha = .3, fill = "orange") +
+  annotate("rect", xmin = as.Date("2023-05-25"), xmax = as.Date("2023-07-23"), ymin = 16, ymax = 20,
+           alpha = .3, fill = "yellow") +
+  theme(panel.border = element_rect(color = "black", fill = NA)) +
+  scale_y_continuous(limits = c(0, 20), expand = c(0,0), breaks = seq(0, 20, by = 4))
+
+month_trend
+```
+##Dataframe for individual islands with averages
+
+```{r}
+month_dat_site <- dat %>%
+  group_by(Date, Year, Site) %>%
+  summarize(Sum_Turtles = sum(Num_Turtles))
+month_dat_site$MonthDay <- format(month_dat_site$Date, "%m-%d") %>%
+  na.omit()
+
+month_dat_site <- month_dat_site %>%
+  group_by(MonthDay, Site) %>%
+  summarize(Mean_Turtles = mean(Sum_Turtles))
+month_dat_site$MonthDay <- as.Date(month_dat_site$MonthDay, format = "%m-%d")
+```
+
+
+
+##Laysan month graph
+
+The trend line graph is the same thing as the above graph showing turtles seen by month, but just for Laysan. The colored block is to represent the average earliest and latest survey date across all years. The graph is repeated with data from each of the other islands.
+
+```{r}
+Laysan_dat2 <- month_dat_site %>%
+  filter(Site == "LAY")
+Laysan_dat2$MonthDay <- as.Date(Laysan_dat2$MonthDay, format = "%m-%d")
+
+
+Laysan_month <- ggplot(data = Laysan_dat2, aes(x = MonthDay, y = Mean_Turtles)) +
+  geom_line() +
+  scale_x_date(breaks = seq(as.Date("2023-01-01"), as.Date("2023-12-31"), by = "month"), date_labels = "%b", limits = c(as.Date("2023-01-01"), as.Date("2023-12-31")), expand = c(0.01,0))+
+  labs(x = "Month", y = "Number of Honu Seen", title = "Average Number of Honu Seen by Month at Kamole (1983-2022, n = 34)") +
+  theme_minimal() +
+  theme(plot.margin = margin(5.5, -50, 5.5, 5.5)) +
+  annotate("rect", xmin = as.Date("2023-04-24"), xmax = as.Date("2023-07-29"), ymin = 0, ymax = 15,
+           alpha = .3, fill = "blue") +
+  geom_smooth(data = Laysan_dat2, linetype = "dashed", color = "black", se = FALSE, method = 'loess') +
+  theme(panel.border = element_rect(color = "black", fill = NA), plot.margin = margin(5.5, 10, 5.5, 5.5)) +
+  scale_y_continuous(limits = c(0,15), expand = c(0,0))
+
+Laysan_month
+```
+
+##Lisi month graph
+
+```{r}
+Lisi_dat2 <- month_dat_site %>%
+  filter(Site == "LIS")
+Lisi_dat2$MonthDay <- as.Date(Lisi_dat2$MonthDay, format = "%m-%d")
+
+Lisi_month <- ggplot(data = Lisi_dat2, aes(x = MonthDay, y = Mean_Turtles)) +
+  geom_line() +
+ scale_x_date(breaks = seq(as.Date("2023-01-01"), as.Date("2023-12-31"), by = "month"), date_labels = "%b", limits = c(as.Date("2023-01-01"), as.Date("2023-12-31")), expand = c(0.01,0)) +
+  labs(x = "Month", y = "Number of Honu Seen", title = "Average Number of Honu Seen by Month at Kapou (1983-2022, n = 32)") +
+  theme_minimal() +
+  theme(plot.margin = margin(5.5, 10, 5.5, 5.5)) +
+  annotate("rect", xmin = as.Date("2023-05-21"), xmax = as.Date("2023-07-28"), ymin = 0, ymax = 40,
+           alpha = .3, fill = "red") +
+  geom_smooth(data = Lisi_dat2, linetype = "dashed", color = "black", se = FALSE, method = 'loess') +
+  theme(panel.border = element_rect(color = "black", fill = NA)) +
+  scale_y_continuous(limits = c(0, 40), expand = c(0,0))
+
+Lisi_month
+```
+
+##Midway month graph
+
+```{r}
+Midway_dat2 <- month_dat_site %>%
+  filter(Site == "MDY")
+Midway_dat2$MonthDay <- as.Date(Midway_dat2$MonthDay, format = "%m-%d")
+
+Midway_month <- ggplot(data =Midway_dat2, aes(x = MonthDay, y = Mean_Turtles)) +
+  geom_line() +
+  scale_x_date(breaks = seq(as.Date("2023-01-01"), as.Date("2023-12-31"), by = "month"), date_labels = "%b", limits = c(as.Date("2023-01-01"), as.Date("2023-12-31")), expand = c(0.01,0))+
+  labs(x = "Month", y = "Number of Honu Seen", title = "Average Number of Honu Seen by Month at Midway (1992-2022, n = 23)") +
+  theme_minimal() +
+  theme(plot.margin = margin(5.5, 10, 5.5, 5.5)) +
+  annotate("rect", xmin = as.Date("2023-04-09"), xmax = as.Date("2023-08-26"), ymin = 0, ymax = 30,
+           alpha = .3, fill = "green") +
+  geom_smooth(data = Midway_dat2, linetype = "dashed", color = "black", se = FALSE, method = 'loess') +
+  theme(panel.border = element_rect(color = "black", fill = NA), plot.margin = margin(5.5, 10, 5.5, 5.5)) +
+  scale_y_continuous(limits = c(0, 30), expand = c(0,0))
+
+Midway_month
+```
+##Pearl and Hermes month graph
+
+```{r}
+PH_dat2 <- month_dat_site %>%
+  filter(Site == "PHR")
+PH_dat2$MonthDay <- as.Date(PH_dat2$MonthDay, format = "%m-%d")
+
+PH_month <- ggplot(data = PH_dat2, aes(x = MonthDay, y = Mean_Turtles)) +
+  geom_line() +
+  scale_x_date(breaks = seq(as.Date("2023-01-01"), as.Date("2023-12-31"), by = "month"), date_labels = "%b", limits = c(as.Date("2023-01-01"), as.Date("2023-12-31")),, expand = c(0.01,0))+
+  labs(x = "Month", y = "Number of Honu Seen", title = "Average Number of Honu Seen by Month at Manawai (1983-2022, n = 34)") +
+  theme_minimal() +
+  theme(plot.margin = margin(5.5, 10, 5.5, 5.5)) +
+  annotate("rect", xmin = as.Date("2023-06-18"), xmax = as.Date("2023-07-29"), ymin = 0, ymax = 45,
+           alpha = .3, fill = "orange") +
+  geom_smooth(data = PH_dat2, linetype = "dashed", color = "black", se = FALSE, method = 'loess') +
+  theme(panel.border = element_rect(color = "black", fill = NA)) +
+  scale_y_continuous(limits = c(0, 45), breaks = seq(0, 45, by = 5), expand = c(0,0))
+
+PH_month
+```
+
+##Kure month Graph
+
+```{r}
+Kure_dat2 <- month_dat_site %>%
+  filter(Site == "KUR")
+Kure_dat2$MonthDay <- as.Date(Kure_dat2$MonthDay, format = "%m-%d")
+
+Kure_month <- ggplot(data =Kure_dat2, aes(x = MonthDay, y = Mean_Turtles)) +
+  geom_line() +
+  scale_x_date(breaks = seq(as.Date("2023-01-01"), as.Date("2023-12-31"), by = "month"), date_labels = "%b", limits = c(as.Date("2023-01-01"), as.Date("2023-12-31")), expand = c(0.01,0))+
+  labs(x = "Month", y = "Number of Honu Seen", title = "Average Number of Honu Seen by Month at Holaniku (1983-2022, n = 32)") +
+  theme_minimal() +
+  annotate("rect", xmin = as.Date("2023-05-25"), xmax = as.Date("2023-07-23"), ymin = 0, ymax = 10,
+           alpha = .3, fill = "yellow") +
+  geom_smooth(data = Kure_dat2, linetype = "dashed", color = "black", se = FALSE, method = 'loess') +
+  theme(panel.border = element_rect(color = "black", fill = NA), plot.margin = margin(5.5, 10, 5.5, 5.5)) +
+  scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, by = 2), expand = c(0,0))
+
+Kure_month
+```
+
+##Turtles seen by month - trend lines for each island
+
+Trend line for each of the islands for the average number of turtles seen throughout the year
+
+```{r}
+month_site_trend <- ggplot() +
+  geom_smooth(data = Laysan_dat2, aes(x = MonthDay, y = Mean_Turtles, color = "Kamole"), method = 'loess', se = FALSE) +
+  geom_smooth(data = Lisi_dat2, aes(x = MonthDay, y = Mean_Turtles, color = "Kapou"), method = 'loess', se = FALSE) +
+  geom_smooth(data = Midway_dat2, aes(x = MonthDay, y = Mean_Turtles, color = "Midway"), method = 'loess', se = FALSE) +
+  geom_smooth(data = PH_dat2, aes(x = MonthDay, y = Mean_Turtles, color = "Manawai"), method = 'loess', se = FALSE) +
+  geom_smooth(data = Kure_dat2, aes(x = MonthDay, y = Mean_Turtles, color = "Hōlanikū"), method = 'loess', se = FALSE) +
+  labs(x = "Time", y = "Number of Turtles", title = "Mean Number of Turtles Seen Each Day") +
+   scale_x_date(breaks = seq(as.Date("2023-01-01"), as.Date("2023-12-31"), by = "month"), date_labels = "%b", limits = c(as.Date("2023-01-01"), as.Date("2023-12-31")), expand = c(0.01,0)) +
+  theme_minimal() +
+  scale_y_continuous(limits = c(0, 25)) +
+  scale_color_manual(values = c("Kamole" = "blue", "Kapou" = "red", "Manawai" = "orange", "Midway" = "green", "Hōlanikū" = "gold"), labels = c("Kamole", "Kapou", "Manawai", "Midway", "Hōlanikū"), breaks = c("Kamole", "Kapou", "Manawai", "Midway", "Hōlanikū")) +
+  guides(color = guide_legend(title = "Island"))  +
+  theme(legend.background = element_rect(color = "black", fill = "white"), plot.margin = margin(5.5, 5.5, 5.5, 5.5))
+
+
+month_site_trend
+```
+
+##Graph of average number of samples per month for each island
+
+I summed together the number of surveys each month in each year and then averaged each month out to find average number of samples a month. done for each island
+
+```{r}
+sample_dat <- unique_dat %>%
+  mutate(Month = format(Date, "%Y-%m")) %>%
+  group_by(Month, Site) %>%
+  summarise(NumSurveys = n()) %>%
+  mutate(Month = substr(Month, 6, 7))
+
+
+avg_surveys <- sample_dat %>%
+  group_by(Site, Month) %>%
+  summarise(AvgSurveys = mean(NumSurveys))
+avg_surveys$Month <- as.numeric(avg_surveys$Month)
+custom_month_names <- c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+avg_surveys$Month <- custom_month_names[avg_surveys$Month]
+avg_surveys$Month <- factor(avg_surveys$Month, levels = custom_month_names, ordered = TRUE)
+
+Kure_surveys <- avg_surveys %>%
+  filter(Site == "KUR")
+
+Laysan_surveys <- avg_surveys %>%
+  filter(Site == "LAY")
+
+Lisi_surveys <- avg_surveys %>%
+  filter(Site == "LIS")
+
+Midway_surveys <- avg_surveys %>%
+  filter(Site == "MDY")
+
+PH_surveys <- avg_surveys %>%
+  filter(Site == "PHR")
+
+
+# Plotting code
+survey_month <- ggplot() +
+  geom_line(data = Kure_surveys, aes(x = Month, y = AvgSurveys, color = "Kure", group = 1), linewidth = 0.8) +
+  geom_line(data = Laysan_surveys, aes(x = Month, y = AvgSurveys, color = "Laysan", group = 1), linewidth = 0.8) +
+  geom_line(data = Lisi_surveys, aes(x = Month, y = AvgSurveys, color = "Lisianski", group = 1), linewidth = 0.8) +
+  geom_line(data = PH_surveys, aes(x = Month, y = AvgSurveys, color = "Pearl & Hermes", group = 1), linewidth = 0.8) +
+  geom_line(data = Midway_surveys, aes(x = Month, y = AvgSurveys, color = "Midway", group = 1), linewidth = 0.8) + 
+  geom_point(data = Kure_surveys, aes(x = Month, y = AvgSurveys, color = "Kure"), size = 2) +
+  geom_point(data = Laysan_surveys, aes(x = Month, y = AvgSurveys, color = "Laysan"), size = 2) +
+  geom_point(data = Lisi_surveys, aes(x = Month, y = AvgSurveys, color = "Lisianski"), size = 2) +
+  geom_point(data = PH_surveys, aes(x = Month, y = AvgSurveys, color = "Pearl & Hermes"), size = 2) +
+  geom_point(data = Midway_surveys, aes(x = Month, y = AvgSurveys, color = "Midway"), size = 2) +
+  labs(x = "Time", y = "Number of Surveys", title = "Average Number of Surveys per Month") +
+  scale_y_continuous(breaks = seq(0, 12, by = 2)) +
+  scale_color_manual(
+    name = "Island",
+    values = c("Laysan" = "blue", "Lisianski" = "red", "Midway" = "green", "Pearl & Hermes" = "orange", "Kure" = "gold"),
+    labels = c("Laysan", "Lisianski", "Midway", "Pearl & Hermes", "Kure"),
+    breaks = c("Laysan", "Lisianski", "Midway", "Pearl & Hermes", "Kure")
+  ) +
+  theme_minimal() +
+  theme(legend.background = element_rect(color = "black", fill = "white")) 
+
+survey_month
+```
+
+##Total number of years where surveys happened at each island
+
+```{r}
+Laysan_years <- dat %>%
+  filter(Site == "LAY")
+unique_lay_years_count <- length(unique(Laysan_years$Year))
+
+Lisi_years <- dat %>%
+  filter(Site == "LIS")
+unique_lis_years_count <- length(unique(Lisi_years$Year))
+
+PH_years <- dat %>%
+  filter(Site == "PHR")
+unique_ph_years_count <- length(unique(PH_years$Year))
+
+Mid_years <- dat %>%
+  filter(Site == "MDY")
+unique_mid_years_count <- length(unique(Mid_years$Year))
+
+Kure_years <- dat %>%
+  filter(Site == "KUR")
+unique_kure_years_count <- length(unique(Kure_years$Year))
+```
+

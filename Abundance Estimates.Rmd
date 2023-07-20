@@ -1,0 +1,316 @@
+---
+title: "Abundance Estimates"
+output: html_document
+date: "2023-06-30"
+---
+
+##Libraries
+
+```{r setup, include=FALSE}
+library(readxl)
+library(here)
+library(dplyr)
+library(tidyverse)
+library(scales)
+library(zoo)
+```
+
+##Data
+
+```{r}
+dat <- read_xlsx(here::here("Data", "AbundanceData.xlsx"))
+Lalo_dat <- read_xlsx(here::here("Data", "LaloAbundanceData.xlsx"))
+nino_dat <- read_xlsx(here::here("Data", "ONI_Data.xlsx"))
+```
+
+##Data frames for daily totals
+
+```{r}
+census_daily_sums <- dat %>% 
+  group_by(Date, Year, Site) %>%
+  summarize(Sum_Turtles = sum(Num_Turtles))
+
+Laysan_daily_sums <- census_daily_sums %>%
+  filter(Site == "LAY")
+
+Lisi_daily_sums <- census_daily_sums %>%
+  filter(Site == "LIS")
+
+Midway_daily_sums <- census_daily_sums %>%
+  filter(Site == "MDY")
+
+PH_daily_sums <- census_daily_sums %>%
+  filter(Site == "PHR")
+
+Kure_daily_sums <- census_daily_sums %>%
+  filter(Site == "KUR")
+
+Nihoa_daily_sums <- census_daily_sums %>%
+  filter(Site == "NIH")
+
+Necker_daily_sums <- census_daily_sums %>%
+  filter(Site == "NEC")
+  
+```
+##Maximum Census Count for each year on each island
+
+```{r}
+Laysan_yearly_max <- Laysan_daily_sums %>%
+  group_by(Year) %>%
+  summarise(Yearly_Max = max(Sum_Turtles))
+
+Lisi_yearly_max <- Lisi_daily_sums %>%
+  group_by(Year) %>%
+  summarise(Yearly_Max = max(Sum_Turtles))
+
+Midway_yearly_max <- Midway_daily_sums %>%
+  group_by(Year) %>%
+  summarise(Yearly_Max = max(Sum_Turtles))
+
+PH_yearly_max <- PH_daily_sums %>%
+  group_by(Year) %>%
+  summarise(Yearly_Max = max(Sum_Turtles))
+
+Kure_yearly_max <- Kure_daily_sums %>%
+  group_by(Year) %>%
+  summarise(Yearly_Max = max(Sum_Turtles))
+
+Nihoa_yearly_max <- Nihoa_daily_sums %>%
+  group_by(Year) %>%
+  summarise(Yearly_Max = max(Sum_Turtles))
+
+Necker_yearly_max <- Necker_daily_sums %>%
+  group_by(Year) %>%
+  summarise(Yearly_Max = max(Sum_Turtles))
+```
+
+##Laysan Estimated Abundance Trend Line
+
+These graphs are showing the maximum number of turtles seen in one day during one basking survey each year. It is the minimum number of basking turtles that each island has seen each year. By using the maximum number of turtles seen, we know that there is at least this many turtles, although there may be more. The metric is the same for each of the below islands. 
+
+```{r}
+Laysan_yearly_max$Year <- as.numeric(Laysan_yearly_max$Year)
+
+Laysan_est_trend <- ggplot() +
+  geom_smooth(data = Laysan_yearly_max, aes(x = Year, y = Yearly_Max)) +
+  geom_line(data = Laysan_yearly_max, aes (x = Year, y = Yearly_Max)) +
+  labs(x= "Year", y = "Maximum Census Count", title = "Laysan Estimated Abundance (1983-2015)") +
+  scale_x_continuous(name = "Year", breaks = seq(1985, 2015, by = 5), limits = c(1983, 2015), expand = c(0.01, 0)) +
+  scale_y_continuous(name = "Maximum Census Count", breaks = seq(0, 18, by = 2), limits = c(0, 18)) +
+  theme_minimal()
+
+Laysan_est_trend
+```
+
+
+##Lisianski Estimated Abundance Trend Line
+
+```{r}
+Lisi_yearly_max$Year <- as.numeric(Lisi_yearly_max$Year)
+
+Lisi_est_trend <- ggplot() +
+  geom_smooth(data = Lisi_yearly_max, aes(x = Year, y = Yearly_Max)) +
+  geom_line(data = Lisi_yearly_max, aes (x = Year, y = Yearly_Max)) +
+  labs(x= "Year", y = "Maximum Census Count", title = "Lisianski Estimated Abundance (1983-2022)") + 
+  scale_x_continuous(name = "Year", breaks = seq(1985, 2020, by = 5), expand = c(0, 0)) +
+  scale_y_continuous(name = "Maximum Census Count", breaks = seq(0, 45, by = 5)) +
+  theme_minimal()
+
+Lisi_est_trend
+```
+
+##Midway Estimated Abundance Trend Line
+
+```{r}
+Midway_yearly_max$Year <- as.numeric(Midway_yearly_max$Year)
+
+Midway_est_trend <- ggplot() +
+  geom_smooth(data = Midway_yearly_max, aes(x = Year, y = Yearly_Max)) +
+  geom_line(data = Midway_yearly_max, aes (x = Year, y = Yearly_Max)) +
+  labs(x= "Year", y = "Maximum Census Count", title = "Midway Estimated Abundance (1992-2020)") +
+  scale_x_continuous(name = "Year", breaks = seq(1992, 2020, by = 2), expand = c(0.01, 0)) +
+  scale_y_continuous(name = "Maximum Census Count", breaks = seq(0, 35, by = 5)) +
+  theme_minimal()
+
+Midway_est_trend
+```
+
+##Pearl and Hermes Estimated Abundance Trend Line
+
+```{r}
+PH_yearly_max$Year <- as.numeric(PH_yearly_max$Year)
+
+PH_est_trend <- ggplot() +
+  geom_smooth(data = PH_yearly_max, aes(x = Year, y = Yearly_Max)) +
+  geom_line(data = PH_yearly_max, aes (x = Year, y = Yearly_Max)) +
+  labs(x= "Year", y = "Maximum Census Count", title = "Pearl and Hermes Estimated Abundance (1983-2022)") +
+  scale_x_continuous(name = "Year", breaks = seq(1985, 2020, by = 5), expand = c(0, 0)) +
+  scale_y_continuous(name = "Maximum Census Count", breaks = seq(0, 45, by = 5)) +
+  theme_minimal()
+
+PH_est_trend
+```
+
+##Kure Estimated Abundance Trend Line
+
+```{r}
+Kure_yearly_max$Year <- as.numeric(Kure_yearly_max$Year)
+
+Kure_est_trend <- ggplot() +
+  geom_smooth(data = Kure_yearly_max, aes(x = Year, y = Yearly_Max)) +
+  geom_line(data = Kure_yearly_max, aes (x = Year, y = Yearly_Max)) +
+  labs(x= "Year", y = "Maximum Census Count", title = "Kure Estimated Abundance (1983-2022)") +
+  scale_x_continuous(name = "Year", breaks = seq(1985, 2020, by = 5), expand = c(0, 0)) +
+  scale_y_continuous(name = "Maximum Census Count", breaks = seq(0, 10, by = 2), limits = c(0, 10)) +
+  theme_minimal()
+
+Kure_est_trend
+```
+
+##NWHI abundance trend
+
+```{r}
+nwhi_abundance <- ggplot() +
+  geom_smooth(data = Laysan_yearly_max, aes(x = Year, y = Yearly_Max, color = "Kamole/Laysan"), se = FALSE, method = 'loess') +
+  geom_smooth(data = Lisi_yearly_max, aes(x = Year, y = Yearly_Max, color = "Kapou/Lisianski"), se = FALSE, method = 'loess') + 
+  geom_smooth(data = Midway_yearly_max, aes(x = Year, y = Yearly_Max, color = "Midway"), se = FALSE, method = 'loess') +
+  geom_smooth(data = PH_yearly_max, aes(x = Year, y = Yearly_Max, color = "Manawai/Pearl & Hermes"), se = FALSE, method = 'loess') +
+  geom_smooth(data = Kure_yearly_max, aes(x = Year, y = Yearly_Max, color = "Hōlanikū/Kure"), se = FALSE, method = 'loess') +
+  theme_minimal() +
+  labs(x = "Time", y = "Maximum Basking Census Count", title = "Estimated Abundance of Basking Honu at Each of the NHI (1983-2022)", color = NULL) +
+  scale_color_manual(values = c("Kamole/Laysan" = "blue", "Kapou/Lisianski" = "red", "Manawai/Pearl & Hermes" = "orange", "Midway" = "green", "Hōlanikū/Kure" = "gold"), labels = c("Kamole/Laysan", "Kapou/Lisianski", "Manawai/Pearl & Hermes Reef", "Midway", "Hōlanikū/Kure"), breaks = c("Kamole/Laysan", "Kapou/Lisianski", "Manawai/Pearl & Hermes", "Midway", "Hōlanikū/Kure")) +
+  guides(color = guide_legend()) +
+  theme(legend.background = element_rect(color = "black", fill = "white"), panel.border = element_rect(color = "black", fill = NA))+
+  scale_x_continuous(limits = c(1983, 2022), breaks = seq(1984, 2022, by = 4), expand = c(0,0)) +
+  scale_y_continuous(breaks = seq(0, 35, by = 5)) +
+  theme(legend.position="bottom", plot.margin = margin(5.5, 10, 5.5, 5.5)) +
+  guides(fill=guide_legend(nrow=1))
+
+nwhi_abundance
+```
+
+##Total Abundance Estimate 
+
+Here I am going to find a very rough estimate of abundance in the NHI by finding the average number of maximum baskers at each island and then summing them all together. 
+
+```{r}
+Laysan_avg <- mean(Laysan_yearly_max$Yearly_Max)
+Lisi_avg <- mean(Lisi_yearly_max$Yearly_Max)
+PH_avg <- mean(PH_yearly_max$Yearly_Max)
+Midway_avg <- mean(Midway_yearly_max$Yearly_Max)
+Kure_avg <- mean(Kure_yearly_max$Yearly_Max)
+
+total_abundance_nhi <- sum(Laysan_avg, Lisi_avg, PH_avg, Midway_avg, Kure_avg)
+total_abundance_nhi
+```
+
+
+
+##Lalo Estimated Abundance Trend Line
+
+```{r}
+Lalo_est_trend <- ggplot() +
+  geom_smooth(data = Lalo_dat, aes(x = Year, y = Estimated_Nester_Abundance)) +
+  geom_line(data = Lalo_dat, aes (x = Year, y = Estimated_Nester_Abundance)) +
+  labs(x= "Year", y = "Estimated Nester Abundance", title = "Lalo Estimated Nester Abundance (1973-2022)") +
+  scale_x_continuous(name = "Year", breaks = seq(1974, 2022, by = 4), limits = c(1973, 2022), expand = c(0.01, 0)) +
+  scale_y_continuous(name = "Estimated Nester Abundance", breaks = seq(0, 900, by = 100), limits = c(0, 900)) +
+  theme_minimal()
+
+Lalo_est_trend
+```
+
+##Abundance Estimate Trend Lines 
+
+```{r}
+all_islands_abundance <- ggplot() +
+  geom_line(data = Laysan_yearly_max, aes(x = Year, y = Yearly_Max, color = "Laysan")) +
+  geom_line(data = Lisi_yearly_max, aes(x = Year, y = Yearly_Max, color = "Lisianski")) +
+  geom_line(data = Midway_yearly_max, aes(x = Year, y = Yearly_Max, color = "Midway")) +
+  geom_line(data = PH_yearly_max, aes(x = Year, y = Yearly_Max, color = "Pearl & Hermes")) +
+  geom_line(data = Kure_yearly_max, aes(x = Year, y = Yearly_Max, color = "Kure")) +
+  geom_line(data = Lalo_dat, aes(x = Year, y = Estimated_Nester_Abundance, color = "Lalo")) +
+  geom_point(data = Laysan_yearly_max, aes(x = Year, y = Yearly_Max, color = "Laysan")) +
+  geom_point(data = Lisi_yearly_max, aes(x = Year, y = Yearly_Max, color = "Lisianski")) +
+  geom_point(data = Midway_yearly_max, aes(x = Year, y = Yearly_Max, color = "Midway")) +
+  geom_point(data = PH_yearly_max, aes(x = Year, y = Yearly_Max, color = "Pearl & Hermes")) +
+  geom_point(data = Kure_yearly_max, aes(x = Year, y = Yearly_Max, color = "Kure")) +
+  geom_point(data = Lalo_dat, aes(x = Year, y = Estimated_Nester_Abundance, color = "Lalo")) +
+  labs(x = "Year", y = "Number of Turtles", title = "Estimated Abundance at Each Island") +
+   scale_x_continuous(breaks = seq(1974,2022, by = 4), limits = c(1973, 2022), expand = c(0.01,0)) +
+  theme_minimal() +
+  scale_y_continuous(limits = c(0, 900), breaks = seq(0, 900, by = 50), expand = c(0,0)) +
+  scale_color_manual(name = "Island", values = c("Laysan" = "blue", "Lisianski" = "red", "Midway" = "green", "Pearl & Hermes" = "orange", "Kure" = "gold", "Lalo" = "purple"), labels = c("Laysan", "Lisianski", "Midway", "Pearl & Hermes", "Kure", "Lalo"), breaks = c("Laysan", "Lisianski", "Midway", "Pearl & Hermes", "Kure", "Lalo")) +
+  guides(color = guide_legend(title = "Island"))  +
+  theme(legend.background = element_rect(color = "black", fill = "white"), plot.margin = margin(5.5, 5.5, 5.5, 5.5))
+
+all_islands_abundance
+```
+
+##ONI Data
+
+This ONI Data is coming from https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php 
+
+```{r}
+nino_dat_long <- nino_dat %>%
+  gather(Month, ONI, -Year)
+
+nino_dat_long$Month <- factor(nino_dat_long$Month, levels = c("JFM", "FMA", "MAM", "AMJ", "MJJ", "JJA", "JAS", "ASO", "SON", "OND", "NDJ", "DJF"))
+
+nino_dat_sorted <- nino_dat_long %>%
+  arrange(Year, Month)
+
+month_mapping <- c("JFM" = 1, "FMA" = 2, "MAM" = 3, "AMJ" = 4, 
+                   "MJJ" = 5, "JJA" = 6, "JAS" = 7, "ASO" = 8, 
+                   "SON" = 9, "OND" = 10, "NDJ" = 11, "DJF" = 12)
+nino_dat_sorted <- nino_dat_sorted %>%
+  mutate(Month = month_mapping[Month])
+nino_dat_sorted$Month <- as.numeric(nino_dat_sorted$Month)
+nino_dat_sorted$YearMonth <- paste(nino_dat_sorted$Year, sprintf("%02d", nino_dat_sorted$Month), sep = "-")
+nino_dat_sorted$YearMonth <- as.Date(paste(nino_dat_sorted$YearMonth, "01", sep = "-"))
+
+
+oni <- ggplot(nino_dat_sorted, aes(x = YearMonth, y = ONI)) +
+  geom_line() +
+  theme_minimal() +
+  scale_x_date(limits = c(as.Date("1950-01-01"), as.Date("2022-12-01")), expand = c(0,0))
+
+oni
+```
+
+##Lalo plus ONI
+
+```{r}
+Lalo_dat$Year <- as.character(Lalo_dat$Year)
+Lalo_dat$Year <- as.Date(paste0(Lalo_dat$Year, "-01-01"), format = "%Y-%m-%d")
+
+Lalo_ONI <- ggplot() +
+  geom_line(data = Lalo_dat, aes (x = Year, y = Estimated_Nester_Abundance, color = "blue")) +
+  geom_line(data = nino_dat_sorted, aes(x = YearMonth, y = ONI, color = "red")) +
+  labs(x= "Year", y = "Estimated Nester Abundance", title = "Lalo Estimated Nester Abundance (1973-2022)") +
+   scale_x_date(limits = as.Date(c("1973-01-01", "2022-12-31")), breaks = seq(as.Date("1980-01-01"), as.Date("2020-01-01"), by = "10 years"), date_labels = "%Y", expand = c(0.01, 0)) +
+    scale_y_continuous(
+    name = "Estimated NesterAbundance",
+    breaks = seq(0, 900, by = 100),
+    limits = c(0, 900),
+    sec.axis = sec_axis(
+      trans = ~ rescale(., to = c(-2, 2)),
+      name = "ONI",
+      breaks = c(-2, -1, 0, 1, 2),
+      labels = c("-2", "-1", "0", "1", "2")
+    )) +
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "red"), labels = c("Lalo", "ONI"), name = "thing")
+  
+
+Lalo_ONI
+```
+
+
+
+
+
+
+
+
+

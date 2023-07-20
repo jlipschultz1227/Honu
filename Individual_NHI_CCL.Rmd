@@ -1,0 +1,346 @@
+---
+title: "Size_Island_Year_Sex"
+output: html_document
+date: "2023-06-16"
+---
+
+## Libraries
+
+```{r}
+library(here)
+library(tidyverse)
+library(readxl)
+library(lme4)
+library(dplyr)
+```
+
+## Data
+
+```{r setup, include=FALSE}
+
+dat <- SizeData
+head(dat)
+
+```
+
+## Table of Averages
+
+```{r}
+##stores all size metrics as numbers (instead of characters lol)
+dat$SCL <- as.numeric(dat$SCL)
+dat$CCL <- as.numeric(dat$CCL)
+dat$SCW <- as.numeric(dat$SCW)
+dat$CCW <- as.numeric(dat$CCW)
+dat$Year <- as.numeric(dat$Year)
+
+
+##makes four different tables storing the averages for each of the four size metrics for each year for each island
+
+SCL_avgs <- dat %>%
+  filter(!is.na(SCL)) %>%
+  group_by(Island, Sex, Year) %>%
+  dplyr::summarise(SCL.avg = mean(SCL, na.rm = TRUE), sample_size = n())
+  
+CCL_avgs <- dat %>%
+  group_by(Island, Sex, Year) %>%
+  dplyr::summarise(CCL.avg = mean(c(CCL, Est_CCL), na.rm = TRUE), sample_size = sum(!is.na(CCL)|!is.na(Est_CCL)))
+
+SCW_avgs <- dat %>%
+  filter(!is.na(SCW)) %>%
+  group_by(Island, Sex, Year) %>%
+  dplyr::summarise(SCW.avg = mean(SCW, na.rm = TRUE), sample_size = n())
+
+CCW_avgs <- dat %>%
+  filter(!is.na(CCW)) %>%
+  group_by(Island, Sex, Year) %>%
+  dplyr::summarise(CCW.avg = mean(CCW, na.rm = TRUE), sample_size = n())
+
+```
+## Laysan bar graph CCL averages
+
+```{r}
+##new table for just the Laysan data I want to use in the graph with certain years from the CCL avgs table
+Laysan_dat <- CCL_avgs %>%
+  filter(Island == "LAYS") %>%
+  filter(Year %in% c(1968, 1982, 1984, 1993))
+
+Laysan_dat$Year <- as.character(Laysan_dat$Year)
+
+##graph for Laysan averages of CCL 
+Laysan <- ggplot(Laysan_dat, aes(x = Year, y = CCL.avg, fill = Sex)) +
+  geom_col(position = position_dodge(), width = 0.5) +
+  labs(x = "Year", y = "Average CCL (cm)", title = "Laysan CCL averages") +
+  theme_minimal() +
+  scale_fill_manual(values = c("#F5495E", "#539DEE"), labels = c("Female", "Male")) +
+  geom_text(aes(label = round(CCL.avg, digits = 1)), fontface = "bold", vjust = -0.3, position = position_dodge(.5), size = 4) +
+  geom_text(aes(label = paste0("n = ", sample_size)), vjust = 1.5, position = position_dodge(.5), size = 3) +
+  scale_y_continuous(minor_breaks = seq(0, 100, 5)) +
+  theme(panel.grid.major = element_line(size = 1, color = "gray90")) +
+  theme(legend.spacing.y = unit(2, "mm"), axis.text = element_text(colour = 1, size = 12),
+        legend.background = element_blank(),
+        legend.box.background = element_rect(colour = "black"))
+```
+
+##Lisianski bar graph CCL averages
+
+```{r}
+##new table for just the Lisianski data I want to use in the graph with certain years from the CCL avgs table
+Lisi_dat <- CCL_avgs %>%
+  filter(Island == "LISI") %>%
+  filter(Year %in% c(1967, 1968, 1982, 1991, 1992, 2018, 2022))
+
+Lisi_dat$Year <- as.character(Lisi_dat$Year)
+
+##graph for Lisi averages of CCL 
+Lisi <- ggplot(Lisi_dat, aes(x = Year, y = CCL.avg, fill = Sex)) +
+  geom_col(position = position_dodge(), width = 0.7) +
+  labs(x = "Year", y = "Average CCL (cm)", title = "Lisi CCL averages") +
+  theme_minimal() +
+  scale_fill_manual(values = c("#F5495E", "#539DEE"), labels = c("Female", "Male")) +
+  geom_text(aes(label = round(CCL.avg, digits = 1)), fontface = "bold", vjust = -0.3, position = position_dodge(.7), size = 4) +
+  geom_text(aes(label = paste0("n = ", sample_size)), vjust = 1.5, position = position_dodge(.7), size = 3) +
+  scale_y_continuous(minor_breaks = seq(0, 100, 5)) +
+  theme(panel.grid.major = element_line(size = 1, color = "gray90")) +
+  theme(legend.spacing.y = unit(2, "mm"), axis.text = element_text(colour = 1, size = 12),
+        legend.background = element_blank(),
+        legend.box.background = element_rect(colour = "black"))
+
+```
+
+##Midway Bar Graph CCL averages
+
+```{r}
+##new table for just the Midway data I want to use in the graph with certain years from the CCL avgs table
+Midway_dat <- CCL_avgs %>%
+  filter(Island == "MIDW") %>%
+  filter(Year %in% c(1998, 1999, 2000, 2001, 2019, 2020, 2022))
+
+Midway_dat$Year <- as.character(Midway_dat$Year)
+
+##graph for Midway averages of CCL 
+Midway <- ggplot(Midway_dat, aes(x = Year, y = CCL.avg, fill = Sex)) +
+  geom_col(position = position_dodge(), width = 0.75) +
+  labs(x = "Year", y = "Average CCL (cm)", title = "Midway CCL averages") +
+  theme_minimal() +
+  scale_fill_manual(values = c("#F5495E", "#539DEE"), labels = c("Female", "Male")) +
+  geom_text(aes(label = round(CCL.avg, digits = 1)), fontface = "bold", vjust = -0.3, position = position_dodge(0.75), size = 4) +
+  geom_text(aes(label = paste0("n = ", sample_size)), vjust = 1.5, position = position_dodge(0.75), size = 3) +
+  scale_y_continuous(minor_breaks = seq(0, 100, 5)) +
+  theme(panel.grid.major = element_line(size = 1, color = "gray90")) +
+  theme(legend.spacing.y = unit(2, "mm"), axis.text = element_text(colour = 1, size = 12),
+        legend.background = element_blank(),
+        legend.box.background = element_rect(colour = "black"))
+
+```
+
+##Pearl and Hermes Bar Graph CCL averages
+
+```{r}
+##new table for just the Pearl and Hermes data I want to use in the graph with certain years from the CCL avgs table
+PH_dat <- CCL_avgs %>%
+  filter(Island == "PEAR") %>%
+  filter(Year %in% c(1966, 1967, 1968, 1970, 1982, 1983, 1984, 1986, 1988, 1991, 2022))
+
+PH_dat$Year <- as.character(PH_dat$Year)
+
+##graph for Laysan averages of CCL 
+PH <- ggplot(PH_dat, aes(x = Year, y = CCL.avg, fill = Sex)) +
+  geom_col(position = position_dodge(), width = 0.8) +
+  labs(x = "Year", y = "Average CCL (cm)", title = "Pearl & Hermes CCL averages") +
+  theme_minimal() +
+  scale_fill_manual(values = c("#F5495E", "#539DEE"), labels = c("Female", "Male")) +
+  geom_text(aes(label = round(CCL.avg, digits = 1)), fontface = "bold", vjust = -0.3, position = position_dodge(.8), size = 4) +
+  geom_text(aes(label = paste0("n = ", sample_size)), vjust = 1.5, position = position_dodge(.8), size = 3) +
+  scale_y_continuous(minor_breaks = seq(0, 100, 5)) +
+  theme(panel.grid.major = element_line(size = 1, color = "gray90")) +
+  theme(legend.spacing.y = unit(2, "mm"), axis.text = element_text(colour = 1, size = 12),
+        legend.background = element_blank(),
+        legend.box.background = element_rect(colour = "black"), aspect.ratio = 5/9) 
+```
+
+
+##Laysan Trend Line CCL Averages
+
+```{r}
+##Separating out males and females 
+Laysan_trend_dat_F <- CCL_avgs %>%
+  filter(Island == "LAYS", Sex == "F")
+Laysan_trend_dat_M <- CCL_avgs %>%
+  filter(Island == "LAYS", Sex == "M")
+
+##Graph with data line and trend line
+Laysan_trend <- ggplot() +
+  geom_smooth(data = Laysan_trend_dat_F, aes(x = Year, y = CCL.avg), color = "chocolate1", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = Laysan_trend_dat_M, aes(x = Year, y = CCL.avg), color = "blue", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  geom_line(data = Laysan_trend_dat_F, aes(x = Year, y = CCL.avg, color = "Female"), linewidth = 1) +
+  geom_line(data = Laysan_trend_dat_M, aes(x = Year, y = CCL.avg, color = "Male"), linewidth = 1) +
+  scale_x_continuous(name = "Year", breaks = seq(1970, 2020, by = 10), limits = c(1966, 2022), minor_breaks = seq(1966, 2022, by = 2), expand = c(0, 0)) +
+  scale_y_continuous(name = "Average CCL (cm)", breaks = seq(86, 104, by = 2), limits = c(85, 105)) +
+  labs(title = "Kamole Average CCL (cm) Trend of Adult Honu 1966 - 2022", size = "Sample Size") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid.major = element_line(size = 1, color = "gray90"),
+    legend.background = element_rect(color = "black", fill = "white"),
+    legend.position = "right"  # Set legend position to the right side
+  ) +
+  scale_color_manual(
+    name = "Sex",
+    values = c("Female" = "chocolate1", "Male" = "blue"),
+    labels = c("Female", "Male")
+  ) +
+  guides(
+    color = guide_legend(override.aes = list(size = 4, shape = NA)),
+    size = guide_legend(override.aes = list(color = "black"))
+  ) +
+  coord_cartesian(clip = "off") +
+  theme(panel.border = element_rect(color = "black", fill = NA)) + 
+  geom_point(data = Laysan_trend_dat_F, aes(x = Year, y = CCL.avg, size = sample_size, color = "Female"), show.legend = TRUE) +
+  geom_point(data = Laysan_trend_dat_M, aes(x = Year, y = CCL.avg, size = sample_size, color = "Male"), show.legend = TRUE) 
+  
+##Fit the linear regression model for females
+lm_female_laysan <- lm(CCL.avg ~ Year, data = Laysan_trend_dat_F)
+summary(lm_female_laysan)
+
+##Fit the linear regression model for males
+lm_male_laysan <- lm(CCL.avg ~ Year, data = Laysan_trend_dat_M)
+summary(lm_male_laysan)
+
+#Run t-test to compare intercepts
+laysan_intercept_test <- t.test(coef(lm(formula = CCL.avg ~ Year, data = Laysan_trend_dat_F)), coef(lm(formula = CCL.avg ~ Year, data = Laysan_trend_dat_M)))
+print(laysan_ttest)
+
+
+```
+
+
+##Lisianski Trend Line CCL Averages
+
+```{r}
+Lisi_trend_dat_F <- CCL_avgs %>%
+  filter(Island == "LISI", Sex == "F")
+Lisi_trend_dat_M <- CCL_avgs %>%
+  filter(Island == "LISI", Sex == "M")
+
+Lisi_trend <- ggplot() +
+  geom_smooth(data = Lisi_trend_dat_F, aes(x = Year, y = CCL.avg), color = "chocolate1", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = Lisi_trend_dat_M, aes(x = Year, y = CCL.avg), color = "blue", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  geom_line(data = Lisi_trend_dat_F, aes(x = Year, y = CCL.avg, color = "Female"), linewidth = 1) +
+  geom_line(data = Lisi_trend_dat_M, aes(x = Year, y = CCL.avg, color = "Male"), linewidth = 1) +
+  scale_x_continuous(name = "Year", breaks = seq(1970, 2020, by = 10), limits = c(1967, 2022), minor_breaks = seq(1968, 2022, by = 2), expand = c(0, 0)) +
+  scale_y_continuous(name = "Average CCL (cm)", breaks = seq(86, 104, by = 2), limits = c(85, 105)) +
+  labs(title = "Kapou Average CCL (cm) Trend of Adult Honu 1967 - 2022", size = "Sample Size") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid.major = element_line(size = 1, color = "gray90"),
+    legend.background = element_rect(color = "black", fill = "white"),
+    legend.position = "right"  # Set legend position to the right side
+  ) +
+  scale_color_manual(
+    name = "Sex",
+    values = c("Female" = "chocolate1", "Male" = "blue"),
+    labels = c("Female", "Male")
+  ) +
+  guides(
+    color = guide_legend(override.aes = list(size = 4, shape = NA)),
+    size = guide_legend(override.aes = list(color = "black"))
+  ) +
+  coord_cartesian(clip = "off") +
+  theme(panel.border = element_rect(color = "black", fill = NA)) +
+  geom_point(data = Lisi_trend_dat_F, aes(x = Year, y = CCL.avg, size = sample_size, color = "Female"), show.legend = TRUE) +
+  geom_point(data = Lisi_trend_dat_M, aes(x = Year, y = CCL.avg, size = sample_size, color = "Male"), show.legend = TRUE) 
+
+```
+
+##Midway Trend Line CCL Averages
+
+```{r}
+Midway_trend_dat_F <- CCL_avgs %>%
+  filter(Island == "MIDW", Sex == "F")
+Midway_trend_dat_M <- CCL_avgs %>%
+  filter(Island == "MIDW", Sex == "M")
+
+Midway_trend <- ggplot() +
+  geom_smooth(data = Midway_trend_dat_F, aes(x = Year, y = CCL.avg), color = "chocolate1", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = Midway_trend_dat_M, aes(x = Year, y = CCL.avg), color = "blue", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  geom_line(data = Midway_trend_dat_F, aes(x = Year, y = CCL.avg, color = "Female"), linewidth = 1) +
+  geom_line(data = Midway_trend_dat_M, aes(x = Year, y = CCL.avg, color = "Male"), linewidth = 1) +
+  scale_x_continuous(name = "Year", breaks = seq(2000, 2020, by = 4), limits = c(1997, 2022), minor_breaks = seq(1997, 2022, by = 1), expand = c(0, 0)) +
+  scale_y_continuous(name = "Average CCL (cm)", breaks = seq(86, 104, by = 2), limits = c(85, 105)) +
+  labs(title = "Midway Average CCL (cm) Trend of Adult Honu 1997 - 2022", size = "Sample Size") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid.major = element_line(size = 1, color = "gray90"),
+    legend.background = element_rect(color = "black", fill = "white"),
+    legend.position = "right"  # Set legend position to the right side
+  ) +
+  scale_color_manual(
+    name = "Sex",
+    values = c("Female" = "chocolate1", "Male" = "blue"),
+    labels = c("Female", "Male")
+  ) +
+  guides(
+    color = guide_legend(override.aes = list(size = 4, shape = NA)),
+    size = guide_legend(override.aes = list(color = "black"))
+  ) +
+  coord_cartesian(clip = "off") +
+  theme(panel.border = element_rect(color = "black", fill = NA)) +
+  geom_point(data = Midway_trend_dat_F, aes(x = Year, y = CCL.avg, size = sample_size, color = "Female"), show.legend = TRUE) +
+  geom_point(data = Midway_trend_dat_M, aes(x = Year, y = CCL.avg, size = sample_size, color = "Male"), show.legend = TRUE) 
+
+```
+
+##Pearl and Hermes Trend Line CCL Averages
+
+```{r}
+PH_trend_dat_F <- CCL_avgs %>%
+  filter(Island == "PEAR", Sex == "F")
+PH_trend_dat_F_clean <- na.omit(PH_trend_dat_F)
+PH_trend_dat_M <- CCL_avgs %>%
+  filter(Island == "PEAR", Sex == "M")
+
+PH_trend <- ggplot() +
+  geom_smooth(data = PH_trend_dat_F, aes(x = Year, y = CCL.avg), color = "chocolate1", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = PH_trend_dat_M, aes(x = Year, y = CCL.avg), color = "blue", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  geom_line(data = PH_trend_dat_F, aes(x = Year, y = CCL.avg, color = "Female"), linewidth = 1) +
+  geom_line(data = PH_trend_dat_M, aes(x = Year, y = CCL.avg, color = "Male"), linewidth = 1) +
+  scale_x_continuous(name = "Year", breaks = seq(1970, 2020, by = 10), limits = c(1964, 2022), minor_breaks = seq(1964, 2022, by = 2), expand = c(0, 0)) +
+  scale_y_continuous(name = "Average CCL (cm)", breaks = seq(86, 104, by = 2), limits = c(85, 105)) +
+  labs(title = "Manawai CCL (cm) Trend of Adult Honu 1964 - 2022", size = "Sample Size") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid.major = element_line(size = 1, color = "gray90"),
+    legend.background = element_rect(color = "black", fill = "white"),
+    legend.position = "right"  # Set legend position to the right side
+  ) +
+  scale_color_manual(
+    name = "Sex",
+    values = c("Female" = "chocolate1", "Male" = "blue"),
+    labels = c("Female", "Male")
+  ) +
+  guides(
+    color = guide_legend(override.aes = list(size = 4, shape = NA)),
+    size = guide_legend(override.aes = list(color = "black"))
+  ) +
+  coord_cartesian(clip = "off") +
+  theme(panel.border = element_rect(color = "black", fill = NA)) +
+  geom_point(data = PH_trend_dat_F, aes(x = Year, y = CCL.avg, size = sample_size, color = "Female"), show.legend = TRUE) +
+  geom_point(data = PH_trend_dat_M, aes(x = Year, y = CCL.avg, size = sample_size, color = "Male"), show.legend = TRUE) 
+
+```
+
+##Table of all sample sizes
+
+```{r}
+Islands <- c(" Total Laysan", "Total Lisianski", "Total Midway", "Total Pearl & Hermes", "Laysan Males", "Laysan Females", "Lisianski Males", "Lisianski Females", "Midway Males", "Midway Females", "Pearl & Hermes Males", "Pearl & Hermes Females")
+Samples<- c((sum(Laysan_trend_dat_F$sample_size) +sum(Laysan_trend_dat_M$sample_size)), (sum(Lisi_trend_dat_F$sample_size) + sum(Lisi_trend_dat_M$sample_size)), (sum(Midway_trend_dat_F$sample_size) + sum(Midway_trend_dat_M$sample_size)), (sum(PH_trend_dat_F$sample_size) + sum(PH_trend_dat_M$sample_size)), sum(Laysan_trend_dat_M$sample_size), sum(Laysan_trend_dat_F$sample_size), sum(Lisi_trend_dat_M$sample_size), sum(Lisi_trend_dat_F$sample_size), sum(Midway_trend_dat_M$sample_size), sum(Midway_trend_dat_F$sample_size), sum(PH_trend_dat_M$sample_size), sum(PH_trend_dat_F$sample_size))
+totals <- data.frame(Islands, Samples)
+```
+

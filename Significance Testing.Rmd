@@ -1,0 +1,184 @@
+---
+title: "Signficance Testing"
+output: html_document
+date: "2023-06-29"
+---
+
+##Libraries
+
+```{r setup, include=FALSE}
+library(here)
+library(tidyverse)
+library(readxl)
+library(lme4)
+library(multcomp)
+library(dplyr)
+```
+
+##Data
+
+```{r}
+dat <- SizeData
+Lalo_dat <- combined_lalo
+
+Lalo_dat <- Lalo_dat[!duplicated(Lalo_dat[c("Turtle ID", "Year")]), ]
+
+```
+
+##Making new dataframes
+
+```{r}
+append_Lalo_F <- Lalo_dat %>%
+  dplyr::filter(Sex == "F") %>%
+  dplyr::mutate(CCL_com = coalesce(CCL, Est_CCL)) %>%
+  dplyr::select(Island, CCL_com, Year)
+
+nwhi_females <- dat %>%
+  dplyr::filter(Sex == "F", Island != "NECK") %>%
+  dplyr::mutate(CCL_com = coalesce(CCL, Est_CCL)) %>%
+  dplyr::select(Island, CCL_com, Year) 
+
+append_Lalo_M <- Lalo_dat %>%
+  dplyr::filter(Sex == "M") %>%
+  dplyr::mutate(CCL_com = coalesce(CCL, Est_CCL)) %>%
+  dplyr::select(Island, CCL_com, Year)
+
+nwhi_males <- dat %>%
+  dplyr::filter(Sex == "M", Island != "NECK") %>%
+  dplyr::mutate(CCL_com = coalesce(CCL, Est_CCL)) %>%
+  dplyr::select(Island, CCL_com, Year)
+
+##data frame of all raw data of females from all islands
+all_females <- bind_rows(dplyr::select(nwhi_females, Island, Year, CCL_com), dplyr::select(append_Lalo_F, Island, Year, CCL_com)) 
+
+##data frame of all raw data of males from all islands
+all_males <- bind_rows(dplyr::select(nwhi_males, Island, Year, CCL_com), dplyr::select(append_Lalo_M, Island, Year, CCL_com)) 
+
+```
+
+##Fitting Linear Models
+
+```{r}
+all_females$Year <- as.numeric(all_females$Year)
+all_males$Year <- as.numeric(all_males$Year)
+
+#model for females
+females_lm <- lm(CCL_com ~ (0+Island) + Year:(0+Island), data = all_females)
+summary(females_lm)
+
+#model for males
+males_lm <- lm(CCL_com ~ (0+Island) + Year:(0+Island), data = all_males)
+
+```
+
+##Contrast test to see if there are significant differences >:)
+
+No signficant differences though in the slopes between the different islands :( 
+
+```{r}
+##Female contrast testing
+female_K <- matrix(c(0, 0, 0, 0, 0, 1, -1, 0, 0, 0,
+                     0, 0, 0, 0, 0, 1, 0, -1, 0, 0, 
+                     0, 0, 0, 0, 0, 1, 0, 0, -1, 0,
+                     0, 0, 0, 0, 0, 1, 0, 0, 0, -1,
+                     0, 0, 0, 0, 0, 0, 1, -1, 0, 0,
+                     0, 0, 0, 0, 0, 0, 1, 0, -1, 0,
+                     0, 0, 0, 0, 0, 0, 1, 0, 0, -1,
+                     0, 0, 0, 0, 0, 0, 0, 1, -1, 0,
+                     0, 0, 0, 0, 0, 0, 0, 1, 0, -1,
+                     0, 0, 0, 0, 0, 0, 0, 0, 1, -1), nrow = 10, byrow = TRUE)
+female_t <- glht(females_lm, linfct = female_K)
+summary(female_t)
+
+##Male contrast testing
+male_K <- matrix(c(0, 0, 0, 0, 0, 1, -1, 0, 0, 0,
+                     0, 0, 0, 0, 0, 1, 0, -1, 0, 0, 
+                     0, 0, 0, 0, 0, 1, 0, 0, -1, 0,
+                     0, 0, 0, 0, 0, 1, 0, 0, 0, -1,
+                     0, 0, 0, 0, 0, 0, 1, -1, 0, 0,
+                     0, 0, 0, 0, 0, 0, 1, 0, -1, 0,
+                     0, 0, 0, 0, 0, 0, 1, 0, 0, -1,
+                     0, 0, 0, 0, 0, 0, 0, 1, -1, 0,
+                     0, 0, 0, 0, 0, 0, 0, 1, 0, -1,
+                     0, 0, 0, 0, 0, 0, 0, 0, 1, -1), nrow = 10, byrow = TRUE)
+male_t <- glht(males_lm, linfct = male_K)
+summary(male_t)
+
+```
+
+##Testing to see if there are significant differences between males and females at the same island
+
+##new raw data dataframes for each Island with both sexes 
+
+Now I'm creating new dataframes with just the raw data from each island with both sexes to determine if there is a significant difference in the sizes of males and females for all years
+
+```{r}
+Laysan_raw <- dat %>%
+  filter(Island == "LAYS") %>%
+  dplyr::mutate(CCL_com = coalesce(CCL, Est_CCL)) %>%
+  dplyr::select(Island, Sex, CCL_com, Year)
+
+Lisi_raw <- dat %>%
+  filter(Island == "LISI") %>%
+  dplyr::mutate(CCL_com = coalesce(CCL, Est_CCL)) %>%
+  dplyr::select(Island, Sex, CCL_com, Year) %>%
+  na.omit()
+
+Midway_raw <- dat %>%
+  filter(Island == "MIDW") %>%
+  dplyr::mutate(CCL_com = coalesce(CCL, Est_CCL)) %>%
+  dplyr::select(Island, Sex, CCL_com, Year)
+
+PH_raw <- dat %>%
+  filter(Island == "PEAR") %>%
+  dplyr::mutate(CCL_com = coalesce(CCL, Est_CCL)) %>%
+  dplyr::select(Island, Sex, CCL_com, Year)
+
+Lalo_raw <- Lalo_dat %>%
+  dplyr::mutate(CCL_com = coalesce(CCL, Est_CCL)) %>%
+  dplyr::select(Island, Sex, CCL_com, Year)
+```
+
+##Linear models to test significance 
+
+```{r}
+Laysan_lm <- lm(CCL_com ~ Sex, Laysan_raw)
+summary(Laysan_lm)
+
+Lisi_lm <- lm(CCL_com ~ Sex, Lisi_raw)
+summary(Lisi_lm)
+
+Midway_lm <- lm(CCL_com ~ Sex, Midway_raw)
+summary(Midway_lm)
+
+PH_lm <- lm(CCL_com ~ Sex, PH_raw)
+summary(PH_lm)
+
+Lalo_lm <- lm(CCL_com ~ Sex, Lalo_raw)
+summary(Lalo_lm)
+```
+
+##Testing difference between NHI and Lalo average CCL for males and females 
+
+```{r}
+nwhi_females2 <- nwhi_females %>%
+  dplyr::select(CCL_com, Year) %>%
+  dplyr::mutate(Island = "NWHI")
+
+nwhi_males2 <- nwhi_males %>%
+  dplyr::select(CCL_com, Year) %>%
+  dplyr::mutate(Island = "NWHI")
+
+comp_females <- bind_rows(dplyr::select(nwhi_females2, Island, Year, CCL_com), dplyr::select(append_Lalo_F, Island, Year, CCL_com)) 
+
+comp_males <- bind_rows(dplyr::select(nwhi_males2, Island, Year, CCL_com), dplyr::select(append_Lalo_M, Island, Year, CCL_com)) 
+
+females_lm <- lm(CCL_com ~ Island, comp_females)
+summary(females_lm)
+
+males_lm <- lm(CCL_com ~ Island, comp_males)
+summary(males_lm)
+
+```
+
+

@@ -1,0 +1,666 @@
+---
+title: "Resights"
+output: html_document
+date: "2023-07-10"
+---
+
+##Libraries
+
+```{r setup, include=FALSE}
+library(here)
+library(dplyr)
+library(tidyverse)
+library(readxl)
+```
+
+##Data
+
+```{r}
+event_dat <- read_xlsx(here::here("Data", "combined_database2.xlsx"))
+tag_dat <- read_xlsx(here::here("Data", "TAGS Query.xlsx"))
+
+event_dat <- event_dat %>%
+  filter(!is.na(Turtle_ID))
+
+event_dat$Year <- as.numeric(event_dat$Year)
+
+```
+
+##Finding Unique Turtle IDs in the database and storing them together in their own dataframe
+
+This code creates a new dataframe for each unique turtle id and puts all the observations/events with that turtle id into the same dataframe so that you can look at all the sightings of one turtle at one time. This includes turtles that have just one observation. 
+
+```{r}
+#creates new list to store all the new dataframes for each individual turtle
+duplicate_ids <- list()
+
+#gets unique turtle id values
+unique_turtle_ids <- unique(event_dat$Turtle_ID)
+
+#for loop to iterate over each unique turtle id from unique_turtle_ids
+for (id in unique_turtle_ids) {
+  #puts each unique turtle id in a new row
+  duplicate_rows <- event_dat[event_dat$Turtle_ID == id, ]
+  #if statement checks for duplicates 
+  if (nrow(duplicate_rows) >= 1) {
+    #stores the duplicate rows in a dataframe in the duplicate_ids list
+    duplicate_ids[[id]] <- duplicate_rows
+  }
+}
+
+##You can put any turtle ID in the quotations and get every instance of it in the database
+specific_id <- duplicate_ids[['9012']]
+
+specific_id
+
+```
+
+##Finding turtles that moved 
+
+Now I want to only look at turtles that moved between islands. Turtles that stayed at the same island is also interesting, but not what I'm looking at right now.  
+
+```{r}
+
+moving_turtles <- list()
+
+# Iterate over each dataframe in the duplicate_dfs list (df_name in names(duplicate_ids) line obtains each name of the dataframes in duplicate_ids using the names() function)
+for (df_name in names(duplicate_ids)) {
+  # Get the current dataframe
+  current_df <- duplicate_ids[[df_name]]
+  
+  # Check if there are multiple unique values in the Islands column
+  unique_islands <- unique(current_df$Island)
+  if (length(unique_islands) > 1) {
+    # Store the dataframe in the moving_turtles list
+    moving_turtles[[df_name]] <- current_df
+  }
+}
+
+specific_df <- moving_turtles[['411C73127B']]
+
+specific_df
+```
+
+##Turtles with dual citizenship
+
+Just from scrolling through the dataframes, it seems like of the turtles that moved, most of them only moved between two islands. I want to know how many turtles go between only two islands. 
+
+```{r}
+dual_citizen <- list()
+
+for(df_name in names(duplicate_ids)) {
+  current_df <- duplicate_ids[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  if(length(unique_islands) == 2) {
+    dual_citizen[[df_name]] <- current_df
+  }
+}
+
+specific_cit <- dual_citizen[['1727']]
+specific_cit
+
+```
+
+##Triple citizen???
+
+Only one turtle in the entire history of the program has been seen at more than two islands. 
+
+```{r}
+tri_citizen <- list()
+
+for(df_name in names(duplicate_ids)) {
+  current_df <- duplicate_ids[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  if(length(unique_islands) > 2) {
+    tri_citizen[[df_name]] <- current_df
+  }
+}
+
+specific_tri <- tri_citizen[['5579']]
+specific_tri
+```
+
+##Sex distribution of the turtles that moved 
+
+First I need to make a new list with moving turtles with only the observations that had sex information. Then I looped through and made a count variable to keep track of how many male and female turtles were in the moving turtle dataframe. Of the turtles that moved (and had sex information) 100 were females and 12 were males.  
+
+```{r}
+female_counts_move <- 0
+male_counts_move <- 0
+
+moving_turtles_w_sex <- list()
+
+for(df_name in names(moving_turtles)) {
+  current_df <- moving_turtles[[df_name]]
+  #gets rid of any rows in the dataframe that have a U for unknown sex
+  filtered_df <- current_df[current_df$Sex != "U", ]
+  # Check if the current dataframe has sex information (ie not NA)
+  if (!any(is.na(filtered_df$Sex))) {
+    # Add the dataframe to the moving_turtles_w_sex list
+    moving_turtles_w_sex[[df_name]] <- filtered_df
+  }
+}
+
+for(df_name in names(moving_turtles_w_sex)) {
+  current_df <- moving_turtles_w_sex[[df_name]]
+
+  if(!is.na(current_df[1, "Sex"]) && current_df[1, "Sex"] == "F") {
+    female_counts_move = female_counts_move + 1
+  }
+  
+  if(!is.na(current_df[1, "Sex"]) && current_df[1, "Sex"] == "M") {
+    male_counts_move = male_counts_move + 1
+  }
+}
+
+Sex <- c("Female", "Male")
+Moving_Sums <- c(female_counts_move, male_counts_move)
+sex_distribution_moving <- data.frame(Sex, Moving_Sums)
+
+sex_distribution_moving
+
+```
+
+##Number of female vs males that we have tagged 
+
+Now I need to figure out if the above female vs male movement metric is a result of a bias in our tagging effort since we spend a lot of time tagging nesting females. So I need to get total female and male tagging counts from the original unique turtle dataframe (using only turtles with sex information obviously so it won't be exact). Of the 9,229 unique tagged turtles with sex information over the history of the entire program, 7456 turtles were female and 1773 were male. 
+
+```{r}
+female_counts <- 0
+male_counts <- 0
+
+duplicate_ids_w_sex <- list()
+
+for(df_name in names(duplicate_ids)) {
+  current_df <- duplicate_ids[[df_name]]
+  #gets rid of any rows in the dataframe that have a U for unknown sex
+  filtered_df <- current_df[current_df$Sex != "U", ]
+  # Check if the current dataframe has sex information (ie not NA)
+  if (!any(is.na(filtered_df$Sex))) {
+    # Add the dataframe to the duplicate_ids_w_sex list
+    duplicate_ids_w_sex[[df_name]] <- filtered_df
+  }
+}
+
+for(df_name in names(duplicate_ids_w_sex)) {
+  current_df <- duplicate_ids_w_sex[[df_name]]
+
+  if(!is.na(current_df[1, "Sex"]) && current_df[1, "Sex"] == "F") {
+    female_counts = female_counts + 1
+  }
+
+  if(!is.na(current_df[1, "Sex"]) && current_df[1, "Sex"] == "M") {
+    male_counts = male_counts + 1
+  }
+}
+
+Sex <- c("Female", "Male")
+Tagging_Sums <- c(female_counts, male_counts)
+sex_distribution_total <- data.frame(Sex, Tagging_Sums)
+
+sex_distribution_total
+```
+
+##Has a turtle ever been seen on different islands in the same year? 
+
+Yes. 15 turtles have been seen at two islands within the same year. 
+
+```{r}
+turtles_multiple_islands <- list()
+
+for (df_name in names(moving_turtles)) {
+  current_df <- moving_turtles[[df_name]]
+  unique_years <- unique(current_df$Year)
+  # will turn true if it finds a turtle that went to multiple islands
+  multiple_islands_flag <- FALSE
+  for (year in unique_years) {
+    year_rows <- current_df[current_df$Year == year, ]
+    unique_islands <- unique(year_rows$Island)
+    if (length(unique_islands) > 1) {
+      multiple_islands_flag <- TRUE
+      break
+    }
+  }
+  # Add the dataframe to the turtles_multiple_islands list if sightings in multiple islands were found
+  if (multiple_islands_flag) {
+    turtles_multiple_islands[[df_name]] <- current_df
+  }
+}
+
+specific_mover <- turtles_multiple_islands[['20180506FF35EM']]
+specific_mover
+```
+
+##New dataframe
+
+This simplified list of dataframes has just the first observation for each turtle for each year at a unique island. So it gets rid of duplicate observations of the same turtle on the same island during the same year. You should still be able to track which direction the turtle is going based on the dates.  
+
+```{r}
+simplified_moving_turtles <- list()
+
+for (df_name in names(moving_turtles)) {
+  current_df <- moving_turtles[[df_name]]
+  # Group the dataframe by Turtle_ID, Year, and Island, and keep the first observation for each group
+  simplified_df <- current_df[!duplicated(current_df[, c("Turtle_ID", "Year", "Island")]), ]
+  simplified_moving_turtles[[df_name]] <- simplified_df
+}
+
+```
+
+##Lisi connections
+
+Now I want to focus on just Lisianski and find out of the turtles that went to Lisi, what is the second (or third) island they went to?
+
+```{r}
+lisi_movements <- list()
+
+for(df_name in names(simplified_moving_turtles)) {
+  current_df <- simplified_moving_turtles[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  for(island in unique_islands) {
+    if(island == "LISI") {
+      lisi_movements[[df_name]] <- current_df
+    }
+  }
+}
+
+##Getting rid of extra observations and simplifying it down to just which two (or three hello 5579) islands each turtle went to so that i'm not double counting islands
+unique_lisi_movements <- list()
+
+for(df_name in names(lisi_movements)) {
+  current_df <- lisi_movements[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  unique_island_df <- data.frame()
+  for(island in unique_islands){
+    island_observation <- current_df[current_df$Island == island, ][1, ]
+    unique_island_df <- rbind(unique_island_df, island_observation)
+  }
+  unique_lisi_movements[[df_name]] <- unique_island_df
+}
+
+ffs_lisi_count <- 0 
+ph_lisi_count <- 0
+mid_lisi_count <- 0
+lay_lisi_count <- 0 
+kure_lisi_count <- 0
+neck_lisi_count <- 0
+
+for(df_name in names(unique_lisi_movements)){
+  current_df <- unique_lisi_movements[[df_name]]
+    # Iterate over each row in the current dataframe
+  for (i in 1:nrow(current_df)) {
+    # Get the island code of the current row
+    island_code <- current_df[i, "Island"]
+    
+    # Increment the count for the corresponding island
+    if (island_code == "FFS") {
+      ffs_lisi_count <- ffs_lisi_count + 1
+    } else if (island_code == "PEAR") {
+      ph_lisi_count <- ph_lisi_count + 1
+    } else if (island_code == "MIDW") {
+      mid_lisi_count <- mid_lisi_count + 1
+    } else if (island_code == "LAYS") {
+      lay_lisi_count <- lay_lisi_count + 1
+    } else if (island_code == "KURE") {
+      kure_lisi_count <- kure_lisi_count + 1
+    } else if (island_code == "NECK") {
+      neck_lisi_count <- neck_lisi_count + 1
+    }
+  }
+}
+
+# Create a new dataframe with the island counts
+island_counts_lisi <- data.frame(
+  Island = c("FFS", "PEAR", "MIDW", "LAYS", "KURE", "NECK"),
+  Count = c(ffs_lisi_count, ph_lisi_count, mid_lisi_count, lay_lisi_count, kure_lisi_count, neck_lisi_count)
+)
+
+# Display the island_counts dataframe
+island_counts_lisi
+```
+
+##Midway Connections
+
+```{r}
+midway_movements <- list()
+
+for(df_name in names(simplified_moving_turtles)) {
+  current_df <- simplified_moving_turtles[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  for(island in unique_islands) {
+    if(island == "MIDW") {
+      midway_movements[[df_name]] <- current_df
+    }
+  }
+}
+
+unique_midway_movements <- list()
+
+for(df_name in names(midway_movements)) {
+  current_df <- midway_movements[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  unique_island_df <- data.frame()
+  for(island in unique_islands){
+    island_observation <- current_df[current_df$Island == island, ][1, ]
+    unique_island_df <- rbind(unique_island_df, island_observation)
+  }
+  unique_midway_movements[[df_name]] <- unique_island_df
+}
+
+ffs_mid_count <- 0 
+ph_mid_count <- 0
+lisi_mid_count <- 0
+lay_mid_count <- 0 
+kure_mid_count <- 0
+neck_mid_count <- 0
+
+for(df_name in names(unique_midway_movements)){
+  current_df <- unique_midway_movements[[df_name]]
+    # Iterate over each row in the current dataframe
+  for (i in 1:nrow(current_df)) {
+    # Get the island code of the current row
+    island_code <- current_df[i, "Island"]
+    
+    # Increment the count for the corresponding island
+    if (island_code == "FFS") {
+      ffs_mid_count <- ffs_mid_count + 1
+    } else if (island_code == "PEAR") {
+      ph_mid_count <- ph_mid_count + 1
+    } else if (island_code == "LISI") {
+      lisi_mid_count <- lisi_mid_count + 1
+    } else if (island_code == "LAYS") {
+      lay_mid_count <- lay_mid_count + 1
+    } else if (island_code == "KURE") {
+      kure_mid_count <- kure_mid_count + 1
+    } else if (island_code == "NECK") {
+      neck_mid_count <- neck_mid_count + 1
+    }
+  }
+}
+
+# Create a new dataframe with the island counts
+island_counts_mid <- data.frame(
+  Island = c("FFS", "PEAR", "LISI", "LAYS", "KURE", "NECK"),
+  Count = c(ffs_mid_count, ph_mid_count, lisi_mid_count, lay_mid_count, kure_mid_count, neck_mid_count)
+)
+
+# Display the island_counts dataframe
+island_counts_mid
+```
+
+##Pearl and Hermes Connections
+
+```{r}
+ph_movements <- list()
+
+for(df_name in names(simplified_moving_turtles)) {
+  current_df <- simplified_moving_turtles[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  for(island in unique_islands) {
+    if(island == "PEAR") {
+      ph_movements[[df_name]] <- current_df
+    }
+  }
+}
+
+unique_ph_movements <- list()
+
+for(df_name in names(ph_movements)) {
+  current_df <- ph_movements[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  unique_island_df <- data.frame()
+  for(island in unique_islands){
+    island_observation <- current_df[current_df$Island == island, ][1, ]
+    unique_island_df <- rbind(unique_island_df, island_observation)
+  }
+  unique_ph_movements[[df_name]] <- unique_island_df
+}
+
+ffs_ph_count <- 0 
+mid_ph_count <- 0
+lisi_ph_count <- 0
+lay_ph_count <- 0 
+kure_ph_count <- 0
+neck_ph_count <- 0
+
+for(df_name in names(unique_ph_movements)){
+  current_df <- unique_ph_movements[[df_name]]
+    # Iterate over each row in the current dataframe
+  for (i in 1:nrow(current_df)) {
+    # Get the island code of the current row
+    island_code <- current_df[i, "Island"]
+    
+    # Increment the count for the corresponding island
+    if (island_code == "FFS") {
+      ffs_ph_count <- ffs_ph_count + 1
+    } else if (island_code == "MIDW") {
+      mid_ph_count <- mid_ph_count + 1
+    } else if (island_code == "LISI") {
+      lisi_ph_count <- lisi_ph_count + 1
+    } else if (island_code == "LAYS") {
+      lay_ph_count <- lay_ph_count + 1
+    } else if (island_code == "KURE") {
+      kure_ph_count <- kure_ph_count + 1
+    } else if (island_code == "NECK") {
+      neck_ph_count <- neck_ph_count + 1
+    }
+  }
+}
+
+# Create a new dataframe with the island counts
+island_counts_ph <- data.frame(
+  Island = c("FFS", "MIDW", "LISI", "LAYS", "KURE", "NECK"),
+  Count = c(ffs_ph_count, mid_ph_count, lisi_ph_count, lay_ph_count, kure_ph_count, neck_ph_count)
+)
+
+# Display the island_counts dataframe
+island_counts_ph
+```
+
+##Laysan Connections
+
+```{r}
+lay_movements <- list()
+
+for(df_name in names(simplified_moving_turtles)) {
+  current_df <- simplified_moving_turtles[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  for(island in unique_islands) {
+    if(island == "LAYS") {
+      lay_movements[[df_name]] <- current_df
+    }
+  }
+}
+
+unique_lay_movements <- list()
+
+for(df_name in names(lay_movements)) {
+  current_df <- lay_movements[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  unique_island_df <- data.frame()
+  for(island in unique_islands){
+    island_observation <- current_df[current_df$Island == island, ][1, ]
+    unique_island_df <- rbind(unique_island_df, island_observation)
+  }
+  unique_lay_movements[[df_name]] <- unique_island_df
+}
+
+ffs_lay_count <- 0 
+ph_lay_count <- 0
+lisi_lay_count <- 0
+mid_lay_count <- 0 
+kure_lay_count <- 0
+neck_lay_count <- 0
+
+for(df_name in names(unique_lay_movements)){
+  current_df <- unique_lay_movements[[df_name]]
+    # Iterate over each row in the current dataframe
+  for (i in 1:nrow(current_df)) {
+    # Get the island code of the current row
+    island_code <- current_df[i, "Island"]
+    
+    # Increment the count for the corresponding island
+    if (island_code == "FFS") {
+      ffs_lay_count <- ffs_lay_count + 1
+    } else if (island_code == "PEAR") {
+      ph_lay_count <- ph_lay_count + 1
+    } else if (island_code == "LISI") {
+      lisi_lay_count <- lisi_lay_count + 1
+    } else if (island_code == "MIDW") {
+      mid_lay_count <- mid_lay_count + 1
+    } else if (island_code == "KURE") {
+      kure_lay_count <- kure_lay_count + 1
+    } else if (island_code == "NECK") {
+      neck_lay_count <- neck_lay_count + 1
+    }
+  }
+}
+
+# Create a new dataframe with the island counts
+island_counts_lay <- data.frame(
+  Island = c("FFS", "PEAR", "LISI", "MIDW", "KURE", "NECK"),
+  Count = c(ffs_lay_count, ph_lay_count, lisi_lay_count, mid_lay_count, kure_lay_count, neck_lay_count)
+)
+
+# Display the island_counts dataframe
+island_counts_lay
+```
+
+##Necker movements
+
+```{r}
+neck_movements <- list()
+
+for(df_name in names(simplified_moving_turtles)) {
+  current_df <- simplified_moving_turtles[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  for(island in unique_islands) {
+    if(island == "NECK") {
+      neck_movements[[df_name]] <- current_df
+    }
+  }
+}
+
+unique_neck_movements <- list()
+
+for(df_name in names(neck_movements)) {
+  current_df <- neck_movements[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  unique_island_df <- data.frame()
+  for(island in unique_islands){
+    island_observation <- current_df[current_df$Island == island, ][1, ]
+    unique_island_df <- rbind(unique_island_df, island_observation)
+  }
+  unique_neck_movements[[df_name]] <- unique_island_df
+}
+
+ffs_neck_count <- 0 
+ph_neck_count <- 0
+lisi_neck_count <- 0
+mid_neck_count <- 0 
+kure_neck_count <- 0
+lay_neck_count <- 0
+
+for(df_name in names(unique_neck_movements)){
+  current_df <- unique_neck_movements[[df_name]]
+    # Iterate over each row in the current dataframe
+  for (i in 1:nrow(current_df)) {
+    # Get the island code of the current row
+    island_code <- current_df[i, "Island"]
+    
+    # Increment the count for the corresponding island
+    if (island_code == "FFS") {
+      ffs_neck_count <- ffs_neck_count + 1
+    } else if (island_code == "PEAR") {
+      ph_neck_count <- ph_neck_count + 1
+    } else if (island_code == "LISI") {
+      lisi_neck_count <- lisi_neck_count + 1
+    } else if (island_code == "MIDW") {
+      mid_neck_count <- mid_neck_count + 1
+    } else if (island_code == "KURE") {
+      kure_neck_count <- kure_neck_count + 1
+    } else if (island_code == "LAYS") {
+      lay_neck_count <- lay_neck_count + 1
+    }
+  }
+}
+
+# Create a new dataframe with the island counts
+island_counts_neck <- data.frame(
+  Island = c("FFS", "PEAR", "LISI", "MIDW", "KURE", "LAYS"),
+  Count = c(ffs_neck_count, ph_neck_count, lisi_neck_count, mid_neck_count, kure_neck_count, lay_neck_count)
+)
+
+# Display the island_counts dataframe
+island_counts_neck
+```
+
+##Kure connections
+
+```{r}
+kure_movements <- list()
+
+for(df_name in names(simplified_moving_turtles)) {
+  current_df <- simplified_moving_turtles[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  for(island in unique_islands) {
+    if(island == "KURE") {
+      kure_movements[[df_name]] <- current_df
+    }
+  }
+}
+
+unique_kure_movements <- list()
+
+for(df_name in names(kure_movements)) {
+  current_df <- kure_movements[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  unique_island_df <- data.frame()
+  for(island in unique_islands){
+    island_observation <- current_df[current_df$Island == island, ][1, ]
+    unique_island_df <- rbind(unique_island_df, island_observation)
+  }
+  unique_kure_movements[[df_name]] <- unique_island_df
+}
+
+ffs_kure_count <- 0 
+ph_kure_count <- 0
+lisi_kure_count <- 0
+mid_kure_count <- 0 
+neck_kure_count <- 0
+lay_kure_count <- 0
+
+for(df_name in names(unique_kure_movements)){
+  current_df <- unique_kure_movements[[df_name]]
+    # Iterate over each row in the current dataframe
+  for (i in 1:nrow(current_df)) {
+    # Get the island code of the current row
+    island_code <- current_df[i, "Island"]
+    
+    # Increment the count for the corresponding island
+    if (island_code == "FFS") {
+      ffs_kure_count <- ffs_kure_count + 1
+    } else if (island_code == "PEAR") {
+      ph_kure_count <- ph_kure_count + 1
+    } else if (island_code == "LISI") {
+      lisi_kure_count <- lisi_kure_count + 1
+    } else if (island_code == "MIDW") {
+      mid_kure_count <- mid_kure_count + 1
+    } else if (island_code == "NECK") {
+      neck_kure_count <- neck_kure_count + 1
+    } else if (island_code == "LAYS") {
+      lay_kure_count <- lay_kure_count + 1
+    }
+  }
+}
+
+# Create a new dataframe with the island counts
+island_counts_kure <- data.frame(
+  Island = c("FFS", "PEAR", "LISI", "MIDW", "NECK", "LAYS"),
+  Count = c(ffs_kure_count, ph_kure_count, lisi_kure_count, mid_kure_count, neck_kure_count, lay_kure_count)
+)
+
+# Display the island_counts dataframe
+island_counts_kure
+```
+

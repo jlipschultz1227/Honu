@@ -1,0 +1,208 @@
+---
+title: "Lalo_CCL_trends"
+output: html_document
+date: "2023-06-22"
+---
+
+##Libraries
+
+```{r setup, include=FALSE}
+library(here)
+library(tidyverse)
+library(readxl)
+library(lme4)
+library(dplyr)
+```
+
+##Data
+
+```{r}
+dat <- SizeData
+Lalo_dat <- combined_lalo
+head(Lalo_dat)
+```
+
+##Remove Duplicates
+
+```{r}
+Lalo_dat <- Lalo_dat[!duplicated(Lalo_dat[c("Turtle ID", "Year")]), ]
+```
+
+
+## Table of Averages
+
+```{r}
+Lalo_CCL_avgs <- Lalo_dat %>%
+  group_by(Sex, Year) %>%
+  dplyr::summarise(CCL.avg = mean(c(CCL, Est_CCL), na.rm = TRUE), sample_size = sum(!is.na(CCL)|!is.na(Est_CCL)))
+
+```
+##Lalo CCL Averages Bar Graph
+
+```{r}
+Lalo_CCL_avgs$Year <- as.character(Lalo_CCL_avgs$Year)
+
+Lalo_bar <- Lalo_CCL_avgs %>%
+  filter(Year %in% c(1965, 1966, 1967, 1968, 1975, 1994, 1999, 2016, 2017, 2018, 2019, 2021, 2022))
+
+##graph for Lalo averages of CCL 
+Lalo <- ggplot(Lalo_bar, aes(x = Year, y = CCL.avg, fill = Sex)) +
+  geom_col(position = position_dodge(), width = 0.8) +
+  labs(x = "Year", y = "Average CCL (cm)", title = "Lalo CCL averages") +
+  theme_minimal() +
+  scale_fill_manual(values = c("#F5495E", "#539DEE"), labels = c("Female", "Male")) +
+  geom_text(aes(label = round(CCL.avg, digits = 1)), fontface = "bold", vjust = -0.3, position = position_dodge(.8), size = 4) +
+  geom_text(aes(label = paste0("n = ", sample_size)), vjust = 1.5, position = position_dodge(.8), size = 3) +
+  scale_y_continuous(minor_breaks = seq(0, 100, 5)) +
+  theme(panel.grid.major = element_line(size = 1, color = "gray90")) +
+  theme(legend.spacing.y = unit(2, "mm"), axis.text = element_text(colour = 1, size = 12),
+        legend.background = element_blank(),
+        legend.box.background = element_rect(colour = "black"))
+```
+
+##Lalo Trend Line CCL averages
+
+```{r}
+Lalo_CCL_avgs$Year <- as.numeric(Lalo_CCL_avgs$Year)
+
+##Separating out males and females 
+Lalo_trend_dat_F <- Lalo_CCL_avgs %>%
+  filter(Sex == "F")
+Lalo_trend_dat_M <- Lalo_CCL_avgs %>%
+  filter(Sex == "M")
+
+##Graph with data line and trend line
+Lalo_trend <- ggplot() +
+  geom_smooth(data = Lalo_trend_dat_F, aes(x = Year, y = CCL.avg), color = "red", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = Lalo_trend_dat_M, aes(x = Year, y = CCL.avg), color = "blue", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  geom_line(data = Lalo_trend_dat_F, aes(x = Year, y = CCL.avg, color = "Female"), linewidth = 1) +
+  geom_line(data = Lalo_trend_dat_M, aes(x = Year, y = CCL.avg, color = "Male"), linewidth = 1) +
+  scale_x_continuous(name = "Year", breaks = seq(1970, 2020, by = 10), limits = c(1965, 2022), minor_breaks = seq(1965, 2022, by = 5), expand = c(0, 0)) +
+  scale_y_continuous(name = "Average CCL (cm)", breaks = seq(88, 104, by = 2), limits = c(88, 105)) +
+  labs(title = "Lalo Average CCL (cm) Trend 1965 - 2022", size = "Sample Size") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid.major = element_line(size = 1, color = "gray90"),
+    legend.background = element_rect(color = "black", fill = "white"),
+    legend.position = "right"  # Set legend position to the right side
+  ) +
+  scale_color_manual(
+    name = "Sex",
+    values = c("Female" = "red", "Male" = "blue"),
+    labels = c("Female", "Male")
+  ) +
+  guides(
+    color = guide_legend(override.aes = list(size = 4, shape = NA)),
+    size = guide_legend(override.aes = list(color = "black"))
+  ) +
+  coord_cartesian(clip = "off") +
+  geom_point(data = Lalo_trend_dat_F, aes(x = Year, y = CCL.avg, size = sample_size, color = "Female"), show.legend = TRUE) +
+  geom_point(data = Lalo_trend_dat_M, aes(x = Year, y = CCL.avg, size = sample_size, color = "Male"), show.legend = TRUE)
+```
+
+
+##Lalo vs all other NWHI trend line (keeping the sexes distinct)
+
+```{r}
+#New dataframe of table of averages of CCL just by year so combining all the islands 
+NWHI_CCL_avgs <- dat %>%
+  group_by(Sex, Year) %>%
+  dplyr::summarise(CCL.avg = mean(c(CCL, Est_CCL), na.rm = TRUE), sample_size = sum(!is.na(CCL)|!is.na(Est_CCL)))
+
+NWHI_CCL_avgs$Year <- as.numeric(NWHI_CCL_avgs$Year)
+
+NWHI_CCL_avgs_F <- NWHI_CCL_avgs %>%
+  filter(Sex == "F")
+
+NWHI_CCL_avgs_M <- NWHI_CCL_avgs %>%
+  filter(Sex == "M")
+
+##Trend line of NWHI and Lalo 
+Lalo_NWHI_trend_w_sex <- ggplot() +
+  geom_line(data = Lalo_trend_dat_F, aes(x = Year, y = CCL.avg, color = "Laysan Female"), linewidth = 1) +
+  geom_line(data = Lalo_trend_dat_M, aes(x = Year, y = CCL.avg, color = "Laysan Male"), linewidth = 1) +
+  geom_line(data = NWHI_CCL_avgs_F, aes(x = Year, y = CCL.avg, color = "NHI Females"), linewidth = 1) +
+  geom_line(data = NWHI_CCL_avgs_M, aes(x = Year, y = CCL.avg, color = "NHI Males"), linewidth = 1) +
+  geom_smooth(data = Lalo_trend_dat_F, aes(x = Year, y = CCL.avg), color = "deeppink1", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = Lalo_trend_dat_M, aes(x = Year, y = CCL.avg), color = "plum1", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = NWHI_CCL_avgs_F, aes(x = Year, y = CCL.avg), color = "black", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = NWHI_CCL_avgs_M, aes(x = Year, y = CCL.avg), color = "#BFC9CA", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  scale_x_continuous(name = "Year", breaks = seq(1970, 2020, by = 10), limits = c(1966, 2022), minor_breaks = seq(1966, 2022, by = 2), expand = c(0, 0)) +
+  scale_y_continuous(name = "Average CCL (cm)", breaks = seq(86, 104, by = 2), limits = c(85, 105)) +
+  labs(title = "Lalo vs NHI Average CCL (cm) Trends of Adult Honu (1966 - 2022)") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid.major = element_line(size = 1, color = "gray90"),
+    legend.background = element_rect(color = "black", fill = "white"),
+    legend.box.background = element_rect(color = "black", fill = "white"),
+    legend.position = "right"  # Set legend position to the right side
+  ) +
+  scale_color_manual(
+    name = "Region and Sex",
+    values = c("deeppink1", "plum1", "black", "#BFC9CA"),
+    labels = c("Lalo Females", "Lalo Males", "NHI Females", "NHI Males")
+  ) +
+  geom_point(data = Lalo_trend_dat_F, aes(x = Year, y = CCL.avg), color = "deeppink1", size = 1.5) +
+  geom_point(data = Lalo_trend_dat_M, aes(x = Year, y = CCL.avg), color = "plum1", size = 1.5) +
+  geom_point(data = NWHI_CCL_avgs_F, aes(x = Year, y = CCL.avg), color = "black", size = 1.5) +
+  geom_point(data = NWHI_CCL_avgs_M, aes(x = Year, y = CCL.avg), color = "#BFC9CA", size = 1.5) +
+  theme(panel.border = element_rect(color = "black", fill = NA)) +
+  theme(legend.position="bottom", plot.margin = margin(5.5, 10, 5.5, 5.5)) +
+  guides(fill=guide_legend(nrow=1))
+  
+
+```
+##Lalo vs NWHI Trend Line (combining sexes here for simplicity)
+
+```{r}
+NWHI_trend2 <- dat %>%
+  group_by(Year) %>%
+  dplyr::summarise(CCL.avg = mean(c(as.numeric(CCL), as.numeric(Est_CCL)), na.rm = TRUE), sample_size = sum(!is.na(CCL) | !is.na(Est_CCL)))
+
+Lalo_trend2 <- Lalo_dat %>%
+  group_by(Year) %>%
+  dplyr::summarise(CCL.avg = mean(c(as.numeric(CCL), as.numeric(Est_CCL)), na.rm = TRUE), sample_size = sum(!is.na(CCL) | !is.na(Est_CCL)))
+
+Lalo_trend2$Year <- as.numeric(Lalo_trend2$Year)
+NWHI_trend2$Year <- as.numeric(NWHI_trend2$Year)
+
+##Trend Line for NWHI and Lalo CCL averages with combined sexes
+Lalo_NWHI_trend_combined <- ggplot() +
+  geom_line(data = Lalo_trend2, aes(x = Year, y = CCL.avg, color = "Lalo"), linewidth = 1) +
+  geom_line(data = NWHI_trend2, aes(x = Year, y = CCL.avg, color = "NWHI"), linewidth = 1) +
+  geom_smooth(data = Lalo_trend2, aes(x = Year, y = CCL.avg), color = "orange", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = NWHI_trend2, aes(x = Year, y = CCL.avg), color = "limegreen", linetype = "dashed", method = "lm", se = FALSE, formula = y ~ x) +
+  scale_x_continuous(name = "Year", breaks = seq(1970, 2020, by = 10), limits = c(1966, 2022), minor_breaks = seq(1966, 2022, by = 2), expand = c(0, 0)) +
+  scale_y_continuous(name = "Average CCL (cm)", breaks = seq(86, 104, by = 2), limits = c(85, 105)) +
+  labs(title = "Lalo vs NWHI Average CCL (cm) Trends 1966 - 2022") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid.major = element_line(size = 1, color = "gray90"),
+    legend.background = element_rect(color = "black", fill = "white"),
+    legend.box.background = element_rect(color = "black", fill = "white"),
+    legend.position = "right"  # Set legend position to the right side
+  ) +
+  scale_color_manual(
+    name = "Region",
+    values = c("orange", "limegreen"),
+    labels = c("Lalo", "NWHI")
+  ) +
+  geom_point(data = Lalo_trend2, aes(x = Year, y = CCL.avg), color = "orange", size = 1.5) +
+  geom_point(data = NWHI_trend2, aes(x = Year, y = CCL.avg), color = "limegreen", size = 1.5)
+
+```
+
+##Table of Sample Sizes
+
+```{r}
+Region <- c("Lalo", "All NWHI Islands", "Lalo Males", "Lalo Females", "All NWHI Males", "All NWHI Females")
+Samples <- c(sum(Lalo_CCL_avgs$sample_size), sum(NWHI_CCL_avgs$sample_size), sum(Lalo_trend_dat_M$sample_size), sum(Lalo_trend_dat_F$sample_size), sum(NWHI_CCL_avgs_M$sample_size), sum(NWHI_CCL_avgs_F$sample_size))
+Lalo_totals <- data.frame(Region, Samples)
+```
+

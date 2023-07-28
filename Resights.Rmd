@@ -15,9 +15,10 @@ library(readxl)
 
 ##Data
 
+The data I'm using for this part of my project is coming from the MTBAP database and the 2022 and 2021 data sources that haven't yet been entered.
+
 ```{r}
 event_dat <- read_xlsx(here::here("Data", "combined_database2.xlsx"))
-tag_dat <- read_xlsx(here::here("Data", "TAGS Query.xlsx"))
 
 event_dat <- event_dat %>%
   filter(!is.na(Turtle_ID))
@@ -28,7 +29,7 @@ event_dat$Year <- as.numeric(event_dat$Year)
 
 ##Finding Unique Turtle IDs in the database and storing them together in their own dataframe
 
-This code creates a new dataframe for each unique turtle id and puts all the observations/events with that turtle id into the same dataframe so that you can look at all the sightings of one turtle at one time. This includes turtles that have just one observation. 
+This code creates a new data frame for each unique turtle id and puts all the observations/events with that turtle id into the same data frame so that you can look at all the sightings of one turtle at one time. This includes turtles that have just one observation.
 
 ```{r}
 #creates new list to store all the new dataframes for each individual turtle
@@ -57,7 +58,7 @@ specific_id
 
 ##Finding turtles that moved 
 
-Now I want to only look at turtles that moved between islands. Turtles that stayed at the same island is also interesting, but not what I'm looking at right now.  
+Now I want to only look at turtles that moved between islands. Turtles that stayed at the same island are also interesting, but not what I'm looking at right now. You can also find a specific turtle that moved with the specific_df line. 140 total honu moved between islands. 
 
 ```{r}
 
@@ -67,7 +68,6 @@ moving_turtles <- list()
 for (df_name in names(duplicate_ids)) {
   # Get the current dataframe
   current_df <- duplicate_ids[[df_name]]
-  
   # Check if there are multiple unique values in the Islands column
   unique_islands <- unique(current_df$Island)
   if (length(unique_islands) > 1) {
@@ -83,7 +83,7 @@ specific_df
 
 ##Turtles with dual citizenship
 
-Just from scrolling through the dataframes, it seems like of the turtles that moved, most of them only moved between two islands. I want to know how many turtles go between only two islands. 
+Just from scrolling through the data frames, it seems like of the turtles that moved, most of them only moved between two islands. I want to know how many turtles go between only two islands. (Spoiler alert: it was 139 out of the 140 moving turtles). Again you can quickly pull up the data frame for turtle with dual citizenship using specific_cit. 
 
 ```{r}
 dual_citizen <- list()
@@ -103,7 +103,7 @@ specific_cit
 
 ##Triple citizen???
 
-Only one turtle in the entire history of the program has been seen at more than two islands. 
+Only one turtle in the entire history of the program has been seen at more than two islands. She was seen at Lalo, Manawai, and Kapou. 
 
 ```{r}
 tri_citizen <- list()
@@ -122,7 +122,7 @@ specific_tri
 
 ##Sex distribution of the turtles that moved 
 
-First I need to make a new list with moving turtles with only the observations that had sex information. Then I looped through and made a count variable to keep track of how many male and female turtles were in the moving turtle dataframe. Of the turtles that moved (and had sex information) 100 were females and 12 were males.  
+To find the sex distribution of the honu that moved, first I need to make a new list with moving turtles with only the observations that had sex information (which was over 90% of them). Then I looped through and made a count variable to keep track of how many male and female turtles were in the moving turtle data frame. Of the turtles that moved (and had sex information) 116 were females and 12 were males.  
 
 ```{r}
 female_counts_move <- 0
@@ -130,17 +130,19 @@ male_counts_move <- 0
 
 moving_turtles_w_sex <- list()
 
+#This for loop filters out any dataframes that do not have either an M or F in their sex column 
 for(df_name in names(moving_turtles)) {
   current_df <- moving_turtles[[df_name]]
-  #gets rid of any rows in the dataframe that have a U for unknown sex
+  #gets rid of any rows in the data frame that have a U for unknown sex
   filtered_df <- current_df[current_df$Sex != "U", ]
-  # Check if the current dataframe has sex information (ie not NA)
+  # Check if the current data frame has sex information (i.e. not NA)
   if (!any(is.na(filtered_df$Sex))) {
-    # Add the dataframe to the moving_turtles_w_sex list
+    # Add the data frame to the moving_turtles_w_sex list
     moving_turtles_w_sex[[df_name]] <- filtered_df
   }
 }
 
+#This for loop actually counts the instances of F and M
 for(df_name in names(moving_turtles_w_sex)) {
   current_df <- moving_turtles_w_sex[[df_name]]
 
@@ -163,7 +165,7 @@ sex_distribution_moving
 
 ##Number of female vs males that we have tagged 
 
-Now I need to figure out if the above female vs male movement metric is a result of a bias in our tagging effort since we spend a lot of time tagging nesting females. So I need to get total female and male tagging counts from the original unique turtle dataframe (using only turtles with sex information obviously so it won't be exact). Of the 9,229 unique tagged turtles with sex information over the history of the entire program, 7456 turtles were female and 1773 were male. 
+Now I need to figure out if the above female vs male movement metric is a result of a bias in our tagging effort, since we spend a lot of time tagging nesting females. So I need to get total female and male tagging counts from the original unique turtle data frame (using only turtles with sex information obviously so it won't be exact). This code is pretty much the same as the chunk above, just with a different list. Of the 9,246 unique tagged turtles with sex information over the history of the entire program, 7473 turtles were female and 1773 were male. 
 
 ```{r}
 female_counts <- 0
@@ -203,7 +205,7 @@ sex_distribution_total
 
 ##Has a turtle ever been seen on different islands in the same year? 
 
-Yes. 15 turtles have been seen at two islands within the same year. 
+Yes. 15 turtles have been seen at two islands within the same year. Most were seen at Lalo during the nesting season and at another northern island during the off season. 
 
 ```{r}
 turtles_multiple_islands <- list()
@@ -233,7 +235,7 @@ specific_mover
 
 ##New dataframe
 
-This simplified list of dataframes has just the first observation for each turtle for each year at a unique island. So it gets rid of duplicate observations of the same turtle on the same island during the same year. You should still be able to track which direction the turtle is going based on the dates.  
+This simplified list of data frames has just the first observation for each turtle for each year at a unique island. I want to use this to make it easier for me to track movements between the islands in code. So it gets rid of duplicate observations of the same turtle on the same island during the same year. You should still be able to track which direction the turtle is going based on the dates.  
 
 ```{r}
 simplified_moving_turtles <- list()
@@ -264,7 +266,7 @@ for(df_name in names(simplified_moving_turtles)) {
   }
 }
 
-##Getting rid of extra observations and simplifying it down to just which two (or three hello 5579) islands each turtle went to so that i'm not double counting islands
+##Getting rid of extra observations and simplifying it down to just which two (or three hello 5579) islands each turtle went to so that I'm not double counting islands
 unique_lisi_movements <- list()
 
 for(df_name in names(lisi_movements)) {
@@ -309,17 +311,16 @@ for(df_name in names(unique_lisi_movements)){
   }
 }
 
-# Create a new dataframe with the island counts
 island_counts_lisi <- data.frame(
   Island = c("FFS", "PEAR", "MIDW", "LAYS", "KURE", "NECK"),
   Count = c(ffs_lisi_count, ph_lisi_count, mid_lisi_count, lay_lisi_count, kure_lisi_count, neck_lisi_count)
 )
-
-# Display the island_counts dataframe
 island_counts_lisi
 ```
 
 ##Midway Connections
+
+Same thing but for Midway. 
 
 ```{r}
 midway_movements <- list()
@@ -390,6 +391,8 @@ island_counts_mid
 
 ##Pearl and Hermes Connections
 
+Same thing but for Manawai. 
+
 ```{r}
 ph_movements <- list()
 
@@ -458,6 +461,8 @@ island_counts_ph
 ```
 
 ##Laysan Connections
+
+Same thing but for Kamole. 
 
 ```{r}
 lay_movements <- list()
@@ -528,6 +533,8 @@ island_counts_lay
 
 ##Necker movements
 
+Same thing but for Mokumanamana.
+
 ```{r}
 neck_movements <- list()
 
@@ -597,6 +604,8 @@ island_counts_neck
 
 ##Kure connections
 
+Same thing but for Holaniku. 
+
 ```{r}
 kure_movements <- list()
 
@@ -662,5 +671,91 @@ island_counts_kure <- data.frame(
 
 # Display the island_counts dataframe
 island_counts_kure
+```
+
+
+##Resights of only Lalo nesters
+
+This is to explore how many of the moving turtles were confirmed Lalo nesters. Of the 116 moving females, 94 of them were nesters at Lalo. 
+
+```{r}
+# New list of data frames for each of the moving turtles who were nesters at Lalo. 
+moving_lalo_nesters <- list()
+
+for(df_name in names(moving_turtles)) {
+  current_df <- moving_turtles[[df_name]]
+  for(i in 1:nrow(current_df)){
+    island_code <- current_df[i, "Island"]
+    event_code <- current_df[i, "Event Type"]
+    if(island_code == "FFS" & event_code == "Nesting"){
+      moving_lalo_nesters[[df_name]] <- current_df
+    }
+  }
+}
+
+specific_lalo_mover <- moving_lalo_nesters[['1260']]
+specific_lalo_mover
+```
+
+##Where are the nesting females going? 
+
+Now I'm curious about what islands these nesting females are going to...
+
+Seems like they're mostly going to Manawai and Midway, which makes sense since they have the most total connections to Lalo (52 between Lalo and Manawai and 35 between Lalo and Midway). 
+
+```{r}
+unique_moving_lalo_nesters_movements <- list()
+
+##Simplifying the dataframes down to unique observations at each island to make them easier to count
+for(df_name in names(moving_lalo_nesters)) {
+  current_df <- moving_lalo_nesters[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  unique_island_df <- data.frame()
+  for(island in unique_islands){
+    island_observation <- current_df[current_df$Island == island, ][1, ]
+    unique_island_df <- rbind(unique_island_df, island_observation)
+  }
+  unique_moving_lalo_nesters_movements[[df_name]] <- unique_island_df
+}
+
+lalo_nesters_at_lay <- 0
+lalo_nesters_at_lisi <- 0
+lalo_nesters_at_ph <- 0
+lalo_nesters_at_mid <- 0
+lalo_nesters_at_kure <- 0
+lalo_nesters_at_necker <- 0
+
+for(df_name in names(unique_moving_lalo_nesters_movements)) {
+  current_df <- unique_moving_lalo_nesters_movements[[df_name]]
+  unique_islands <- unique(current_df$Island)
+  for(island in unique_islands){
+    if(island == "LAYS"){
+      lalo_nesters_at_lay = lalo_nesters_at_lay + 1
+    }
+    if(island == "LISI"){
+      lalo_nesters_at_lisi = lalo_nesters_at_lisi + 1
+    }
+    if(island == "PEAR"){
+      lalo_nesters_at_ph = lalo_nesters_at_ph +1
+    }
+    if(island == "MIDW"){
+      lalo_nesters_at_mid = lalo_nesters_at_mid +1
+    }
+    if(island == "NECK"){
+      lalo_nesters_at_necker = lalo_nesters_at_necker +1
+    }
+    if(island == "KURE"){
+      lalo_nesters_at_kure = lalo_nesters_at_kure +1
+    }
+  }
+}
+
+
+lalo_nesters_paired_islands <- data.frame(
+  Island = c("Necker", "Laysan", "Lisianski", "Pearl & Hermes", "Midway", "Kure"),
+  Count = c(lalo_nesters_at_necker, lalo_nesters_at_lay, lalo_nesters_at_lisi, lalo_nesters_at_ph, lalo_nesters_at_mid, lalo_nesters_at_kure)
+)
+lalo_nesters_paired_islands
+
 ```
 

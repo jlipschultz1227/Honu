@@ -16,6 +16,8 @@ library(dplyr)
 
 ##Data
 
+Here, I'm using the same data that I did for the individual NHI CCL trends, but I also have another data set with all of the size data from Lalo. I cleaned it using the same metrics as the other data set (so only adults > 81 cm SCL and those with sex information). 
+
 ```{r}
 dat <- SizeData
 Lalo_dat <- combined_lalo
@@ -24,6 +26,8 @@ head(Lalo_dat)
 
 ##Remove Duplicates
 
+The Lalo data had a lot of duplicates for each turtle since we see each turtle many times in one year, so I removed the duplicates of each Turtle ID if it was seen during the same year. That way, each turtle is only being counted in the math once. 
+
 ```{r}
 Lalo_dat <- Lalo_dat[!duplicated(Lalo_dat[c("Turtle ID", "Year")]), ]
 ```
@@ -31,13 +35,18 @@ Lalo_dat <- Lalo_dat[!duplicated(Lalo_dat[c("Turtle ID", "Year")]), ]
 
 ## Table of Averages
 
+Found the average CCL of Lalo male and female honu for each year.
+
 ```{r}
 Lalo_CCL_avgs <- Lalo_dat %>%
   group_by(Sex, Year) %>%
   dplyr::summarise(CCL.avg = mean(c(CCL, Est_CCL), na.rm = TRUE), sample_size = sum(!is.na(CCL)|!is.na(Est_CCL)))
 
 ```
+
 ##Lalo CCL Averages Bar Graph
+
+Bar graph for Lalo's CCL averages. 
 
 ```{r}
 Lalo_CCL_avgs$Year <- as.character(Lalo_CCL_avgs$Year)
@@ -61,6 +70,8 @@ Lalo <- ggplot(Lalo_bar, aes(x = Year, y = CCL.avg, fill = Sex)) +
 ```
 
 ##Lalo Trend Line CCL averages
+
+Trend line for Lalo's CCL averages. 
 
 ```{r}
 Lalo_CCL_avgs$Year <- as.numeric(Lalo_CCL_avgs$Year)
@@ -103,7 +114,9 @@ Lalo_trend <- ggplot() +
 ```
 
 
-##Lalo vs all other NWHI trend line (keeping the sexes distinct)
+##Lalo vs all other NHI trend line (keeping the sexes distinct)
+
+This graph is to compare all of the other northern Hawaiian islands to just Lalo to see if there is a difference between the size of honu at Lalo versus the rest of the monument. In this graph, I kept the sexes distinct to see if there was a difference in size between the males and females of each region (spoiler alert: there's a significant difference in females but not in the males).
 
 ```{r}
 #New dataframe of table of averages of CCL just by year so combining all the islands 
@@ -158,6 +171,8 @@ Lalo_NWHI_trend_w_sex <- ggplot() +
 ```
 ##Lalo vs NWHI Trend Line (combining sexes here for simplicity)
 
+Here, I combined the sexes just to make it easier to look at. However, since there's a significant different between the NHI and Lalo females and not the males, then it's probably only worth looking at the above graph to get that specificity. 
+
 ```{r}
 NWHI_trend2 <- dat %>%
   group_by(Year) %>%
@@ -199,6 +214,8 @@ Lalo_NWHI_trend_combined <- ggplot() +
 ```
 
 ##Table of Sample Sizes
+
+Again, just made a table of total sample sizes for the NHI and Lalo males and females for easy reference. The yearly sample sizes for Lalo are specifically listed in the bar graph and then in the trend line, there are various sized dots to show relative sample size. 
 
 ```{r}
 Region <- c("Lalo", "All NWHI Islands", "Lalo Males", "Lalo Females", "All NWHI Males", "All NWHI Females")

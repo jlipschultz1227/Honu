@@ -16,6 +16,8 @@ library(dplyr)
 
 ## Data
 
+The data I used for this analysis is coming from the MTBAP database and the more recent 2022 data that hasn't been entered into the database yet. I decided to use CCL to compare sizes of honu between islands, since that is the metric that was most often collected. I was using only adult honu, which I defined as above 81 cm in SCL which is coming from an adult classification metric from Balazs 1980. Sometimes, honu in the database only had one or two measurements. I used an equation that is usually used for Atlantic greens to estimate SCL based on CCL and vice versa. The equation is CCL = (SCL + 0.0515)/0.9426 (Goshe et al. 2010). So as long as a turt had either SCL or CCL, it could be included in my analysis. 
+
 ```{r setup, include=FALSE}
 
 dat <- SizeData
@@ -24,6 +26,8 @@ head(dat)
 ```
 
 ## Table of Averages
+
+I found the average SCL, CCL, SCW, and CCW for honu at each island for each year separated out by males and females. 
 
 ```{r}
 ##stores all size metrics as numbers (instead of characters lol)
@@ -57,6 +61,8 @@ CCW_avgs <- dat %>%
 
 ```
 ## Laysan bar graph CCL averages
+
+Then I made bar graphs for the average CCLs for Laysan separated by males and females. I did the same thing for each island. 
 
 ```{r}
 ##new table for just the Laysan data I want to use in the graph with certain years from the CCL avgs table
@@ -161,6 +167,8 @@ PH <- ggplot(PH_dat, aes(x = Year, y = CCL.avg, fill = Sex)) +
 
 ##Laysan Trend Line CCL Averages
 
+Then I realized that trend lines would actually probably be more helpful and easier to look at, so then I made trend lines instead for each of the islands. 
+
 ```{r}
 ##Separating out males and females 
 Laysan_trend_dat_F <- CCL_avgs %>%
@@ -198,22 +206,9 @@ Laysan_trend <- ggplot() +
   theme(panel.border = element_rect(color = "black", fill = NA)) + 
   geom_point(data = Laysan_trend_dat_F, aes(x = Year, y = CCL.avg, size = sample_size, color = "Female"), show.legend = TRUE) +
   geom_point(data = Laysan_trend_dat_M, aes(x = Year, y = CCL.avg, size = sample_size, color = "Male"), show.legend = TRUE) 
-  
-##Fit the linear regression model for females
-lm_female_laysan <- lm(CCL.avg ~ Year, data = Laysan_trend_dat_F)
-summary(lm_female_laysan)
-
-##Fit the linear regression model for males
-lm_male_laysan <- lm(CCL.avg ~ Year, data = Laysan_trend_dat_M)
-summary(lm_male_laysan)
-
-#Run t-test to compare intercepts
-laysan_intercept_test <- t.test(coef(lm(formula = CCL.avg ~ Year, data = Laysan_trend_dat_F)), coef(lm(formula = CCL.avg ~ Year, data = Laysan_trend_dat_M)))
-print(laysan_ttest)
 
 
 ```
-
 
 ##Lisianski Trend Line CCL Averages
 
@@ -337,6 +332,8 @@ PH_trend <- ggplot() +
 ```
 
 ##Table of all sample sizes
+
+Then I found all the total sample sizes of males and females at each island and put them in a table for easy reference. They are not separated out by year, but the bar graphs have specific sample sizes listed out for each year and then trend lines have relative sample size shown using differently sized points on the line graph.
 
 ```{r}
 Islands <- c(" Total Laysan", "Total Lisianski", "Total Midway", "Total Pearl & Hermes", "Laysan Males", "Laysan Females", "Lisianski Males", "Lisianski Females", "Midway Males", "Midway Females", "Pearl & Hermes Males", "Pearl & Hermes Females")

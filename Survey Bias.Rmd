@@ -1,5 +1,5 @@
 ---
-title: "Abundance Trends"
+title: "Survey Bias"
 output: html_document
 date: "2023-07-03"
 ---
@@ -19,6 +19,8 @@ library(chron)
 
 ##Data and Removing Duplicates
 
+I'm using the same data sources as in the abundance estimates rmd but this time, instead of calculating abundance estimates, I'm looking for possible proof of survey bias. So for this, I also needed a dataset with one observation per basking survey so the data reflects when surveys are taking place instead of how many honu they're seeing. To do this, I removed every duplicate instance of a survey (had the same date and beginning survey time). I will use dat to still find basking totals at different points in time, but unique_dat to assess trends in survey times. 
+
 ```{r}
 dat <- read_xlsx(here::here("Data", "AbundanceData.xlsx"))
 removed_dat <-  read_xlsx(here::here("Data", "AbundanceData.xlsx"))
@@ -33,8 +35,9 @@ unique_dat[, TimeBegin := as.ITime(sprintf("%s", TimeBegin), format = "%H%M")]
 unique_dat[, TimeEnd := as.ITime(sprintf("%s", TimeEnd), format = "%H%M")]
 ```
 
-
 ##Time dataframe 
+
+In time_dat, I found the mean number of turtles seen at each specific time during the day. For this, I only used observations from dat that had a specific time associated with each sighting. 
 
 ```{r}
 time_dat <- dat %>%
@@ -52,7 +55,7 @@ time_dat$Time <- as.POSIXct(time_dat$Time, format = "%H:%M")
 
 ##Avg start and end times for each island
 
-Finding the average start and end time for surveys at each island
+Then I wanted to find the average start and end times of daily surveys at each of the islands. 
 
 ```{r}
 #Finding the average survey times for Laysan
@@ -116,9 +119,10 @@ Kure_avg_end_time <- format(as.ITime(Kure_avg_end_time_numeric, format = "h:m:s"
 Kure_avg_end_time
 
 ```
+
 ##Graph for Time trends
 
-This graph is a plot of the average of turtles seen at each time of day. It is combining all Northwest Islands and all years. The colored bars represent the average start and end time for surveys done at each island across all years. Blue is Laysan, red is Laysan, green is Midway, orange is Pearl and Hermes and yellow is Kure. 
+This graph is a plot of the average of turtles seen at each time of day. It is combining all Northwest Islands and all years. The colored bars represent the average start and end time for surveys done at each island across all years. Blue is Laysan, red is Lisianski, green is Midway, orange is Pearl and Hermes, and yellow is Kure. 
 
 ```{r}
 
@@ -150,6 +154,8 @@ time_trend
 ```
 
 ##Time Dataframes for each island
+
+Now I separated the data frame that I used for the above plot by each island so that I can make graphs for each of the islands separately. 
 
 ```{r}
 time_dat_site <- dat %>%
@@ -183,6 +189,8 @@ Kure_time_dat <- time_dat_site %>%
 
 ##Laysan time graph
 
+A graph of the mean number of honu seen at each time of day at Laysan with a colored bar for the average survey time. This code is repeated below for each of the northern islands. 
+
 ```{r}
 Laysan_time <- ggplot() +
   geom_line(data = Laysan_time_dat, aes(x = Time, y = Mean_Turtles)) +
@@ -200,6 +208,7 @@ Laysan_time <- ggplot() +
 
 Laysan_time
 ```
+
 ##Lisianski Time Graph
 
 ```{r}
@@ -282,6 +291,7 @@ Kure_time
 
 ##Month Data Means
 
+Now I was curious about if survey timing during the year was also biasing our basking abundance estimates. So I took all the observations from dat and found totals for each unique date. Then I found sums for numbers of honu seen at each date across every year. The first_days variable is just a marker for graphing purposes. 
 
 ```{r}
 month_dat <- dat %>%
@@ -299,8 +309,9 @@ month_dat$MonthDay <- as.Date(month_dat$MonthDay, format = "%m-%d")
  first_days <- (format(month_dat$MonthDay, "%m-01"))
 ```
 
-
 ##Finding average start and end survey dates at each island
+
+To do this, I first found the sum of honu seen at each date at each island. I didn't have to use unique_dat for this since I made a different data frame that was a little easier to work with. Kind of made another unique_dat data frame but it's okay. So avg_month has the total number of honu seen at each day at each island. So if multiple basking surveys were done on the same day, then all of those honu are added together since I only want specificity down to the day. Then I found average start and end dates for the field season at each of the islands using avg_month. 
 
 ```{r}
 avg_month <- dat %>%
@@ -406,7 +417,7 @@ avg_ends_K
 
 ##Month Trend totals graph
 
-This graph is showing the average of turtles seen in one day on every island and across every year. This is coming from all the complete censuses that we have from the Monk Seal Program and the MTBAP program from 1983 to 2022. The colored bars represent the average range of surveys done at each island. I found the average earliest and latest survey done each year at each island. Blue is Laysan, red is Laysan, green is Midway, orange is Pearl and Hermes and yellow is Kure. 
+This graph is showing the average of turtles seen in one day on every island and across every year. This is coming from all the complete censuses that we have from the Monk Seal Program and the MTBAP program from 1983 to 2022. The colored bars represent the average range of surveys done at each island. I found the average earliest and latest survey done each year at each island. Blue is Laysan, red is Lisianski, green is Midway, orange is Pearl and Hermes, and yellow is Kure. 
 
 ```{r}
 month_trend <- ggplot(month_dat, aes(x = MonthDay, y = Mean_Turtles)) +
@@ -429,7 +440,10 @@ month_trend <- ggplot(month_dat, aes(x = MonthDay, y = Mean_Turtles)) +
 
 month_trend
 ```
+
 ##Dataframe for individual islands with averages
+
+Then I found the mean of honu seen at each day of the year at each island so that I could make separate graphs for each island. 
 
 ```{r}
 month_dat_site <- dat %>%
@@ -443,8 +457,6 @@ month_dat_site <- month_dat_site %>%
   summarize(Mean_Turtles = mean(Sum_Turtles))
 month_dat_site$MonthDay <- as.Date(month_dat_site$MonthDay, format = "%m-%d")
 ```
-
-
 
 ##Laysan month graph
 
@@ -514,6 +526,7 @@ Midway_month <- ggplot(data =Midway_dat2, aes(x = MonthDay, y = Mean_Turtles)) +
 
 Midway_month
 ```
+
 ##Pearl and Hermes month graph
 
 ```{r}
@@ -559,7 +572,7 @@ Kure_month
 
 ##Turtles seen by month - trend lines for each island
 
-Trend line for each of the islands for the average number of turtles seen throughout the year
+Trend line for each of the islands for the average number of turtles seen throughout the year. Just helpful for quickly seeing peaks in the basking abundance of honu at each island. 
 
 ```{r}
 month_site_trend <- ggplot() +
@@ -582,7 +595,7 @@ month_site_trend
 
 ##Graph of average number of samples per month for each island
 
-I summed together the number of surveys each month in each year and then averaged each month out to find average number of samples a month. done for each island
+I summed together the number of surveys each month in each year and then averaged each month out to find average number of samples a month. done for each island. This was to show at what points during the year we have the most survey effort. Shows at which points during the year at each island we have the most reliable survey data since the sample size is at its largest. 
 
 ```{r}
 sample_dat <- unique_dat %>%
@@ -643,6 +656,8 @@ survey_month
 ```
 
 ##Total number of years where surveys happened at each island
+
+Just a count of how many years surveys were done at each of the islands. Most of them are around 30.  
 
 ```{r}
 Laysan_years <- dat %>%

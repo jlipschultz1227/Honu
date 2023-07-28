@@ -17,6 +17,8 @@ library(dplyr)
 
 ##Data
 
+Same data as the other files. Big shout out to Devin Johnson for helping me with this part! 
+
 ```{r}
 dat <- SizeData
 Lalo_dat <- combined_lalo
@@ -26,6 +28,8 @@ Lalo_dat <- Lalo_dat[!duplicated(Lalo_dat[c("Turtle ID", "Year")]), ]
 ```
 
 ##Making new dataframes
+
+I made new data frames so that all of the Lalo females and males and the NHI males and females have their own data frames to make them easier to compare and analyze. I also made a data frame for all females and for all males. 
 
 ```{r}
 append_Lalo_F <- Lalo_dat %>%
@@ -58,6 +62,8 @@ all_males <- bind_rows(dplyr::select(nwhi_males, Island, Year, CCL_com), dplyr::
 
 ##Fitting Linear Models
 
+Then I fit linear models for the male and female data sets that were separated by Island.
+
 ```{r}
 all_females$Year <- as.numeric(all_females$Year)
 all_males$Year <- as.numeric(all_males$Year)
@@ -71,9 +77,10 @@ males_lm <- lm(CCL_com ~ (0+Island) + Year:(0+Island), data = all_males)
 
 ```
 
-##Contrast test to see if there are significant differences >:)
+##Contrast test to see if there are significant differences in the size trend lines of each island >:)
 
-No signficant differences though in the slopes between the different islands :( 
+No significant differences though in the slopes between the different islands :( 
+So the size of honu is not changing at different rates at any of the islands.
 
 ```{r}
 ##Female contrast testing
@@ -108,9 +115,11 @@ summary(male_t)
 
 ##Testing to see if there are significant differences between males and females at the same island
 
-##new raw data dataframes for each Island with both sexes 
+Then I wanted to see if there were significant differences in the size of male and female honu at each of the islands. 
 
-Now I'm creating new dataframes with just the raw data from each island with both sexes to determine if there is a significant difference in the sizes of males and females for all years
+##new raw data data frames for each Island with both sexes 
+
+Now I'm creating new data frames with just the raw data from each island with both sexes to determine if there is a significant difference in the sizes of males and females for all years
 
 ```{r}
 Laysan_raw <- dat %>%
@@ -141,6 +150,8 @@ Lalo_raw <- Lalo_dat %>%
 
 ##Linear models to test significance 
 
+Then I fit linear models to see if there is a significant difference in the CCL depending on sex. Yes! For all islands, females are significantly larger than males (p-values can be found below)
+
 ```{r}
 Laysan_lm <- lm(CCL_com ~ Sex, Laysan_raw)
 summary(Laysan_lm)
@@ -159,6 +170,8 @@ summary(Lalo_lm)
 ```
 
 ##Testing difference between NHI and Lalo average CCL for males and females 
+
+Then I was curious about if the NHI and Lalo males/females were significantly different. Found that Lalo females are significantly larger than females found in the rest of the monument. Males do not have a significant difference. This could be because Lalo females are actually mostly MHI females which have better foraging grounds than the honu that live in the PMNM. 
 
 ```{r}
 nwhi_females2 <- nwhi_females %>%

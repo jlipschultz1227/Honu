@@ -17,6 +17,8 @@ library(zoo)
 
 ##Data
 
+The data I'm using to calculate abundances is all data from confirmed complete basking surveys. This is mostly coming from the HMSRP Turtle Basking Data sheet, but also from more recent sources from the other northern islands of the monument. The Lalo abundance data I'm using is from a table of estimates of NESTER abundance. However, it can be assumed that nester abundance is approximately equal to basking abundance since after nesting season, there is no basking on Lalo. So, all basking during nesting season is coming from the nesters and no year round residents. The El Nino data is coming from https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php 
+
 ```{r}
 dat <- read_xlsx(here::here("Data", "AbundanceData.xlsx"))
 Lalo_dat <- read_xlsx(here::here("Data", "LaloAbundanceData.xlsx"))
@@ -24,6 +26,8 @@ nino_dat <- read_xlsx(here::here("Data", "ONI_Data.xlsx"))
 ```
 
 ##Data frames for daily totals
+
+Each data source in abundance data was different in if it reported totals of honu for each day or had a different observation for each honu. So I just made a separate data frame for each island that calculated survey sums for each day there were surveys to make it more consistent. 
 
 ```{r}
 census_daily_sums <- dat %>% 
@@ -52,7 +56,10 @@ Necker_daily_sums <- census_daily_sums %>%
   filter(Site == "NEC")
   
 ```
+
 ##Maximum Census Count for each year on each island
+
+This found the maximum number of honu that were seen during a single basking survey for each year at each island. 
 
 ```{r}
 Laysan_yearly_max <- Laysan_daily_sums %>%
@@ -86,7 +93,7 @@ Necker_yearly_max <- Necker_daily_sums %>%
 
 ##Laysan Estimated Abundance Trend Line
 
-These graphs are showing the maximum number of turtles seen in one day during one basking survey each year. It is the minimum number of basking turtles that each island has seen each year. By using the maximum number of turtles seen, we know that there is at least this many turtles, although there may be more. The metric is the same for each of the below islands. 
+These graphs are showing the maximum number of turtles seen in one day during one basking survey each year. It is the minimum number of basking turtles that each island has seen each year. By using the maximum number of turtles seen, we know that there is at least this many turtles, although there may be more. The code is the same for each of the northern islands.
 
 ```{r}
 Laysan_yearly_max$Year <- as.numeric(Laysan_yearly_max$Year)
@@ -101,7 +108,6 @@ Laysan_est_trend <- ggplot() +
 
 Laysan_est_trend
 ```
-
 
 ##Lisianski Estimated Abundance Trend Line
 
@@ -169,6 +175,8 @@ Kure_est_trend
 
 ##NWHI abundance trend
 
+This plot is showing the smooth curves for the basking abundance data for each of the northern islands. 
+
 ```{r}
 nwhi_abundance <- ggplot() +
   geom_smooth(data = Laysan_yearly_max, aes(x = Year, y = Yearly_Max, color = "Kamole/Laysan"), se = FALSE, method = 'loess') +
@@ -191,7 +199,7 @@ nwhi_abundance
 
 ##Total Abundance Estimate 
 
-Here I am going to find a very rough estimate of abundance in the NHI by finding the average number of maximum baskers at each island and then summing them all together. 
+Here I am going to find a very rough estimate of abundance in the NHI by finding the average number of maximum baskers at each island throughout time and then summing them all together. 
 
 ```{r}
 Laysan_avg <- mean(Laysan_yearly_max$Yearly_Max)
@@ -204,9 +212,9 @@ total_abundance_nhi <- sum(Laysan_avg, Lisi_avg, PH_avg, Midway_avg, Kure_avg)
 total_abundance_nhi
 ```
 
-
-
 ##Lalo Estimated Abundance Trend Line
+
+Fits a smooth curve and plots the data points of the Lalo estimated nester abundance data. 
 
 ```{r}
 Lalo_est_trend <- ggplot() +
@@ -221,6 +229,8 @@ Lalo_est_trend
 ```
 
 ##Abundance Estimate Trend Lines 
+
+This graph is showing abundance estimate line graphs for each of the islands in the PMNM.
 
 ```{r}
 all_islands_abundance <- ggplot() +
@@ -249,7 +259,7 @@ all_islands_abundance
 
 ##ONI Data
 
-This ONI Data is coming from https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php 
+This is just me cleaning up the ONI data to where I have it in the format I want so that I can use it more easily. Then I use it to just make a line graph of the ONI index through time.  
 
 ```{r}
 nino_dat_long <- nino_dat %>%
@@ -279,6 +289,8 @@ oni
 ```
 
 ##Lalo plus ONI
+
+This is where I was trying to add Lalo abundance data and ONI data to the same graph so that I could more easily tell if El Nino was having an effect on Lalo nesting abundance, but I could never quite get it to work. So this code doesn't work, but I kept it just in case. 
 
 ```{r}
 Lalo_dat$Year <- as.character(Lalo_dat$Year)
